@@ -28,8 +28,8 @@ OC􏰈􏰉􏰈􏰉语言在编译期都会被编译为C语言的Runtime代码，
 
 我们在编写Objective-C代码的时候，无论是直接的还是间接的都会使用到Runtime,总的来说Runtime系统发生交互的方式主要有三种分别如下:
 
-1.Objective-C源码直接使用上层Objective-C源码，然后底层会通过Runtime为其提供运行支持，上层不需要关心Runtime的运行。
-2.通过Foundation框架的NSObject类定义的方法来访问Runtime。NSObject在OC代码中绝大多数类都是继承自NSObject的，NSProxy类例外。Runtime在NSObject中定义了一些基础操作，NSObject的子类也具备这些特性。
+1.Objective-C源码直接使用上层Objective-C源码，然后底层会通过Runtime为其提供运行支持，上层不需要关心Runtime的运行。  
+2.通过Foundation框架的NSObject类定义的方法来访问Runtime。NSObject在OC代码中绝大多数类都是继承自NSObject的，NSProxy类例外。Runtime在NSObject中定义了一些基础操作，NSObject的子类也具备这些特性。  
 3.通过直接调用Runtime函数，不过我们一般情况下不需要直接调用Runtime函数，咱们直接和Objective-C代码打交道就好了。
 
 ## Runtime方法的调用
