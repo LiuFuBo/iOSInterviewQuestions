@@ -1,3 +1,3 @@
 # iOSInterviewQuestions
 
-(https://github.com/LiuFuBo/iOSInterviewQuestions/Imgs/cover.jpeg)
+(https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/cover.jpeg)
