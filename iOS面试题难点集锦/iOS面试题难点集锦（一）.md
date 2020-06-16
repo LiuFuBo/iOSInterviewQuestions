@@ -107,7 +107,7 @@ struct objc_class : objc_object {
 'objc_class'它是继承自'objc_object'的，也就是说'Class'本身同时也是一个对象，为了处理类和对象的关系，runtime库创建了一种叫做元类(Meta Class)的东西，类对象所属类型就叫做元类，它用来表述类对象本身所具备的元数据。类方法就定义于此处，因为这些方法可以理解成类对象的实例方法。每个类仅有一个类对象，而每个类对象仅有一个与之相关的元类。当你发出一个类似 '[NSObject alloc] '的消息时，你事实上是把这个消息发给了一个类对象 (Class Object) ，这个类对象必须是一个元类的实例，而这个元类同时也是一个根元类 (root meta class) 的实例。所有的元类最终都指向根元类为其超类。所有的元类的方法列表都有能够响应消息的类方法。所以当 '[NSObject alloc]' 这条消息发给类对象的时候，objc_msgSend() 会去它的元类里面去查找能够响应消息的方法，如果找到了，然后对这个类对象执行方法调用。
 
 <div align= center>
-<img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/class-diagram.jpg"/>
+<img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/Imgs/class-diagram.jpg"/>
 </div>
 
 
