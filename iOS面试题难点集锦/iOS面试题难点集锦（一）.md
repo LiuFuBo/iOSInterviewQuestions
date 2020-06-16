@@ -108,6 +108,7 @@ struct objc_class : objc_object {
 <div align= center>
 <img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/class-diagram.jpg"/>
 </div>
+![](https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/class-diagram.jpg)
 
 上图中实线是'superclass'指针，虚线是'isa'指针。 有趣的是根元类的超类是 'NSObject'，而 'isa' 指向了自己，而 'NSObject' 的超类为 nil，也就是它没有超类。
 
