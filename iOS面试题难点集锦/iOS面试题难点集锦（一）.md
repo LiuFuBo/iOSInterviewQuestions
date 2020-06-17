@@ -7,7 +7,7 @@
 
 1. [什么是Runtime?Runtime方法是如何在缓存中寻找的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#什么是Runtime-Runtime方法是如何在缓存中寻找的)
 
-2. [在Runtime中，是如何在消息列表中查找方法的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#在Runtime中-是如何在消息列表中查找方法的)
+<h1 id="在Runtime中，是如何在消息列表中查找方法的?">2. 在Runtime中，是如何在消息列表中查找方法的?</h1>
 
 
 
