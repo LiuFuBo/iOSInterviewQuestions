@@ -1,6 +1,6 @@
 ## iOS面试题难点集锦（一）---参考答案
 
-说明：面试题来源于自己知识点的总结以及一些博客大佬[玉令天下的博客]的博文学习记录。文章问题答案如有出入的地方，欢迎联系我加以校正。
+说明：面试题来源于自己知识点的总结以及一些博客大佬例如:[玉令天下的博客](http://yulingtianxia.com)的博文学习记录。文章问题答案如有出入的地方，欢迎联系我加以校正。
 
 # 索引
 
@@ -34,7 +34,7 @@ OC􏰈􏰉􏰈􏰉语言在编译期都会被编译为C语言的Runtime代码，
 
 ## Runtime方法的调用
 
-除了 `+(void)load` 以外，所有的OC方法调用在底层都会被转化为'objc_msgSend:'函数的调用，它是这样的结构:
+除了 `+(void)load` 以外，所有的OC方法调用在底层都会被转化为`objc_msgSend:`函数的调用，它是这样的结构:
 ```
 id objc_msgSend ( id self, SEL op, ... );
 
@@ -43,13 +43,13 @@ id objc_msgSend ( id self, SEL op, ... );
 
 ### id
 
-'objc_msgSend'函数第一个参数类型为'id',它实际是指向类实例的指针，具体结构如下:
+`objc_msgSend`函数第一个参数类型为`id`,它实际是指向类实例的指针，具体结构如下:
 
 ```
 typedef struct objc_object *id;
 
 ```
-那么'objc_object'又是什么东西呢？参考Runtime部分源码:
+那么`objc_object`又是什么东西呢？参考Runtime部分源码:
 
 ```
 struct objc_object {
@@ -67,28 +67,28 @@ public:
 }
 
 ```
-'objc_object'结构体包含了一个'isa'指针，类型为'isa_t'联合体。根据isa就可以顺藤摸瓜找到对象所属的类。因为'isa_t'使用'union'实现，所以可能表示多种形态，既可以当成指针，也可以作为存储标志位。它跟tagged pointer都涉及到引用计数管理。有关'isa_t'联合体更多的内容可以查看[Objective-C 引用计数原理](https://www.jianshu.com/p/12d6e64c07bb)。
+`objc_object`结构体包含了一个`isa`指针，类型为`isa_t`联合体。根据`isa`就可以顺藤摸瓜找到对象所属的类。因为`isa_t`使用`union`实现，所以可能表示多种形态，既可以当成指针，也可以作为存储标志位。它跟`tagged pointer`都涉及到引用计数管理。有关`isa_t`联合体更多的内容可以查看[Objective-C 引用计数原理](https://www.jianshu.com/p/12d6e64c07bb)。
 
-注:'isa'指针不总是指向实例对象所属的类，不能依靠它来确定类型，而是应该用 class 方法来确定实例对象的类。因为KVO的实现机理就是将被观察对象的 isa 指针指向一个中间类而不是真实的类，这是一种叫做 isa-swizzling 的技术，详见[官方文档](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueObserving/Articles/KVOImplementation.html)
+注:`isa`指针不总是指向实例对象所属的类，不能依靠它来确定类型，而是应该用 class 方法来确定实例对象的类。因为KVO的实现机理就是将被观察对象的 `isa` 指针指向一个中间类而不是真实的类，这是一种叫做 isa-swizzling 的技术，详见[官方文档](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueObserving/Articles/KVOImplementation.html)
 
 ### SEL
 
-'objc_msgSend'函数第二个参数类型为'SEL'，它是'selector'在Objc中的表示类型（Swift中是'Selector'类）。'selector'是方法选择器，
-可以理解为区分方法的 ID，而这个 ID 的数据结构是'SEL':
+`objc_msgSend`函数第二个参数类型为`SEL`，它是`selector`在Objc中的表示类型（Swift中是`Selector`类）。`selector`是方法选择器，
+可以理解为区分方法的 ID，而这个 ID 的数据结构是`SEL`:
 ```
 typedef struct objc_selector *SEL;
 
 ```
-其实它也就是一个映射都方法的C字符串，你可以用 Objc 编译器命令'@selector()'或者 Runtime 系统的 'sel_registerName' 函数来获得一个 'SEL' 类型的方法选择器。在OC中不同类中相同名字的方法所对应的方法选择器是相同的，即使方法名字相同而变量类型不同也会导致它们具有相同的方法选择器，于是OC方法命名中有时候会带上参数类型。
+其实它也就是一个映射都方法的C字符串，你可以用 Objc 编译器命令`@selector()`或者 Runtime 系统的 `sel_registerName` 函数来获得一个 `SEL` 类型的方法选择器。在OC中不同类中相同名字的方法所对应的方法选择器是相同的，即使方法名字相同而变量类型不同也会导致它们具有相同的方法选择器，于是OC方法命名中有时候会带上参数类型。
 
-PS:objc_msgSend方法第三个参数...表示的是函数的一些参数，这里就不再做具体的讲解。
+PS:`objc_msgSend`方法第三个参数`...`表示的是函数的一些参数，这里就不再做具体的讲解。
 
-上面我们讲到'objc_msgSend'函数的各个参数的作用，同时了解到'isa'指针不能用来确定类型，必须用'class'方法来确定实例对象的类。那么'class'又究竟是个什么呢？咱们通过Runtime源码可以了解到它是一个结构体指针，具体结构如下:
+上面我们讲到`objc_msgSend`函数的各个参数的作用，同时了解到`isa`指针不能用来确定类型，必须用`class`方法来确定实例对象的类。那么`class`又究竟是个什么呢？咱们通过Runtime源码可以了解到它是一个结构体指针，具体结构如下:
 ```
 typedef struct objc_class *Class;
 
 ```
-而咱们的'objc_class'又是继承自‘objc_object’结构体的，‘objc_class’包含了很多成员，主要如下:
+而咱们的`objc_class`又是继承自`objc_object`结构体的，`objc_class`包含了很多成员，主要如下:
 
 ```
 struct objc_class : objc_object {
@@ -104,7 +104,7 @@ struct objc_class : objc_object {
 
 ```
 
-'objc_class'它是继承自'objc_object'的，也就是说'Class'本身同时也是一个对象，为了处理类和对象的关系，runtime库创建了一种叫做元类(Meta Class)的东西，类对象所属类型就叫做元类，它用来表述类对象本身所具备的元数据。类方法就定义于此处，因为这些方法可以理解成类对象的实例方法。每个类仅有一个类对象，而每个类对象仅有一个与之相关的元类。当你发出一个类似 '[NSObject alloc] '的消息时，你事实上是把这个消息发给了一个类对象 (Class Object) ，这个类对象必须是一个元类的实例，而这个元类同时也是一个根元类 (root meta class) 的实例。所有的元类最终都指向根元类为其超类。所有的元类的方法列表都有能够响应消息的类方法。所以当 '[NSObject alloc]' 这条消息发给类对象的时候，objc_msgSend() 会去它的元类里面去查找能够响应消息的方法，如果找到了，然后对这个类对象执行方法调用。
+`objc_class`它是继承自`objc_object`的，也就是说`Class`本身同时也是一个对象，为了处理类和对象的关系，runtime库创建了一种叫做元类(Meta Class)的东西，类对象所属类型就叫做元类，它用来表述类对象本身所具备的元数据。类方法就定义于此处，因为这些方法可以理解成类对象的实例方法。每个类仅有一个类对象，而每个类对象仅有一个与之相关的元类。当你发出一个类似 `[NSObject alloc] `的消息时，你事实上是把这个消息发给了一个类对象 (Class Object) ，这个类对象必须是一个元类的实例，而这个元类同时也是一个根元类 (root meta class) 的实例。所有的元类最终都指向根元类为其超类。所有的元类的方法列表都有能够响应消息的类方法。所以当 `[NSObject alloc]` 这条消息发给类对象的时候，objc_msgSend() 会去它的元类里面去查找能够响应消息的方法，如果找到了，然后对这个类对象执行方法调用。
 
 <div align= center>
 <img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/class-diagram.jpg"/>
@@ -112,11 +112,11 @@ struct objc_class : objc_object {
 
 
 
-上图中实线是'superclass'指针，虚线是'isa'指针。 有趣的是根元类的超类是 'NSObject'，而 'isa' 指向了自己，而 'NSObject' 的超类为 nil，也就是它没有超类。
+上图中实线是`superclass`指针，虚线是`isa`指针。 有趣的是根元类的超类是 `NSObject`，而 `isa` 指向了自己，而 `NSObject` 的超类为 nil，也就是它没有超类。
 
 可以看到运行时一个类还关联了它的超类指针，类名，成员变量，方法，缓存，还有附属的协议。
 
-上面我们讲到OC方法调用实际转化为了'objc_msgSend'函数调用，而通过方法选择器'SEL'字符串去寻找方法实现'IMP'则是先去当前对象的'cache'缓存中寻找的，也就是上面'objc_class'结构体对应的'cache_t'结构体内部实现。'cache_t'结构体的结构如下:
+上面我们讲到OC方法调用实际转化为了 `objc_msgSend`函数调用，而通过方法选择器`SEL`字符串去寻找方法实现`IMP`则是先去当前对象的`cache`缓存中寻找的，也就是上面`objc_class`结构体对应的`cache_t`结构体内部实现。`cache_t`结构体的结构如下:
 ```
 struct cache_t {
     struct bucket_t *_buckets;
@@ -126,9 +126,9 @@ struct cache_t {
 }
 
 ```
-'mask'存储了散列表的长度，'occupied'则存储了缓存方法的数量。
+`mask`存储了散列表的长度，`occupied`则存储了缓存方法的数量。
 
-'buckets'则是存储了‘IMP’和‘SEL’映射的散列表(Hash表)。 通过Runtime源码查看'buckets'结构体如下:
+`buckets`则是存储了`IMP`和`SEL`映射的散列表(Hash表)。 通过Runtime源码查看`buckets`结构体如下:
 
 ```
 struct bucket_t {
@@ -147,7 +147,7 @@ public:
 
 ```
 
-通过阅读Runtime源码，我们可以找到方法缓存的实现函数为'cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)'具体实现如下：
+通过阅读Runtime源码，我们可以找到方法缓存的实现函数为`cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)`具体实现如下：
 
 ```
 static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
@@ -208,7 +208,7 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
 
 ### 散列表扩容
 
-通过上面步骤流程咱们了解到当散列表存储容量达到3/4以后，再存入新的方法则需要对散列表进行扩容，通过上面方法缓存入口函数可知,系统是调用'cache->expand()'函数来实现扩容的，具体实现可参考Runtime源码
+通过上面步骤流程咱们了解到当散列表存储容量达到3/4以后，再存入新的方法则需要对散列表进行扩容，通过上面方法缓存入口函数可知,系统是调用`cache->expand()`函数来实现扩容的，具体实现可参考Runtime源码
 
 ```
 //当散列表的空间占用超过3/4的时候，散列表会调用expand()函数进行扩展
@@ -230,7 +230,7 @@ void cache_t::expand()
 }
 
 ```
-通过'cache->expand()'函数我们了解到扩容过程实现步骤也有五步：
+通过`cache->expand()`函数我们了解到扩容过程实现步骤也有五步：
 
 1.将当前线程上锁，确保线程安全  
 2.获取旧的散列表占用空间  
@@ -238,7 +238,7 @@ void cache_t::expand()
 4.判断新散列表内存是否存在溢出，如果溢出，则内存还是设置为原来的内存大小  
 5.释放旧的散列表，创建新的散列表  
 
-咱们继续查看散列表内存释放函数'cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)'实现代码如下:
+咱们继续查看散列表内存释放函数`cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)`实现代码如下:
 
 ```
 void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
@@ -264,9 +264,9 @@ void cache_t::reallocate(mask_t oldCapacity, mask_t newCapacity)
 }
 
 ```
-从实现代码我们看到新的散列表数组被创建，实际可以存储大小为'newCapacity-1',旧的散列表最后就会被释放，因为读写操作非常耗时，缓存的目的是节省时间，所以创建新缓存池没有将老的内存copy过来，而且这种操作也会清理掉长时间没有调用的方法。
+从实现代码我们看到新的散列表数组被创建，实际可以存储大小为`newCapacity-1`,旧的散列表最后就会被释放，因为读写操作非常耗时，缓存的目的是节省时间，所以创建新缓存池没有将老的内存copy过来，而且这种操作也会清理掉长时间没有调用的方法。
 
-处理完缓存散列表扩容问题以后，咱们需要关注一下，方法缓存入口函数'cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)'内部'cache->find(SEL s, id receiver)'函数，该函数用于查询'SEL'所对应的'bucket'。具体实现函数如下:
+处理完缓存散列表扩容问题以后，咱们需要关注一下，方法缓存入口函数`cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)`内部`cache->find(SEL s, id receiver)`函数，该函数用于查询`SEL`所对应的`bucket`。具体实现函数如下:
 
 ```
 bucket_t * cache_t::find(SEL s, id receiver)
@@ -298,11 +298,11 @@ bucket_t * cache_t::find(SEL s, id receiver)
 
 ```
 
-'cache->find(SEL s, id receiver)'函数，当存储 Imp 之前需要查询散列表数组中的 bucket_t,采用 do{}while()只是为了处理 key 值所 对应的'hash'产生碰撞的问题。总结函数实现步骤如下:  
+`cache->find(SEL s, id receiver)`函数，当存储 Imp 之前需要查询散列表数组中的 `bucket_t`,采用 do{}while()只是为了处理 key 值所 对应的`hash`产生碰撞的问题。总结函数实现步骤如下:  
 1.获取散列表(Hash表)  
 2.获取mask，它是一个uint32_t类型的常量  
-3.通过hash函数‘cache_hash(s,m)’获取散列表中SEL存储的下标  
-4.判断当前下标是否有值，如果没有值则直接返回该位置缓存新加入方法，如果之前如果有值，缓存的方法选择器字符串是否是当前需要缓存的字符串，如果是，则直接返回，如果获取的当前散列表下标对应的位置已经有内容了，则遇到了Hash碰撞，需要采用'cache_next(i,m)'函数获取适合的位置返回存储内容，这里涉及到两个函数,一个是'cache_hash(s,m)',一个是'cache_next(i,m)'函数。  
+3.通过hash函数`cache_hash(s,m)`获取散列表中SEL存储的下标  
+4.判断当前下标是否有值，如果没有值则直接返回该位置缓存新加入方法，如果之前如果有值，缓存的方法选择器字符串是否是当前需要缓存的字符串，如果是，则直接返回，如果获取的当前散列表下标对应的位置已经有内容了，则遇到了Hash碰撞，需要采用`cache_next(i,m)`函数获取适合的位置返回存储内容，这里涉及到两个函数,一个是`cache_hash(s,m)`,一个是`cache_next(i,m)`函数。  
 
 ```
 static inline mask_t cache_hash(SEL sel, mask_t mask) 
@@ -312,7 +312,7 @@ static inline mask_t cache_hash(SEL sel, mask_t mask)
 
 ```
 
-在拿到key以后,'cache_hash(s,m)'采用SEL按位与mask得到一个小于等于mask的常量，任何一个数值&mask得到的数值最大就是mask。
+在拿到key以后,`cache_hash(s,m)`采用SEL按位与mask得到一个小于等于mask的常量，任何一个数值&mask得到的数值最大就是mask。
 
 ```
 static inline mask_t cache_next(mask_t i, mask_t mask) {
@@ -320,7 +320,7 @@ static inline mask_t cache_next(mask_t i, mask_t mask) {
 }
 
 ```
-'cache_next(mask_t i, mask_t mask)'采用向下+1来避免Hash碰撞冲突问题。
+`cache_next(mask_t i, mask_t mask)`采用向下+1来避免Hash碰撞冲突问题。
 
 注:通过以上讲解，我们知道了OC方法在缓存中查找方法实现的过程，但是如果缓存列表中没有找到相关方法实现，则需要进入方法列表中寻找。
 
