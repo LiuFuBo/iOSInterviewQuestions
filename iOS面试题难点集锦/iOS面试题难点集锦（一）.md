@@ -5,11 +5,9 @@
 # 索引
 
 
-1. [什么是Runtime?Runtime方法是如何在缓存中寻找的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md# 什么是Runtime?Runtime方法是如何在缓存中寻找的?)
+1. [什么是Runtime?Runtime方法是如何在缓存中寻找的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#什么是Runtime?Runtime方法是如何在缓存中寻找的?)
 
-2. [在Runtime中，是如何在消息列表中查找方法的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md# 在Runtime中，是如何在消息列表中查找方法的?)
-
-
+2. [在Runtime中，是如何在消息列表中查找方法的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#在Runtime中，是如何在消息列表中查找方法的?)
 
 
 
@@ -18,7 +16,9 @@
 
 
 
-# 什么是Runtime?Runtime方法是如何在缓存中寻找的?
+
+
+### 什么是Runtime?Runtime方法是如何在缓存中寻找的?
 
 OC语言是一门动态语言，会将程序的一些决定工作从编译期推迟到运行期。由于OC语言运行时的特性，所以其不仅需要依赖编译期，还需要依赖运行时环境，这就是Objective-C Runtime(运行时环境)系统存在的意义。Runtime基本是由一套C、C++、以及汇编编写的，可见苹果为了动态系统的高效而作出的努力。你可以在[这里下载](https://opensource.apple.com/source/objc4/)到苹果维护的开源代码。苹果和GNU各自维护一个开源的 runtime 版本，这两个版本之间都在努力的保持一致。
 
@@ -327,7 +327,7 @@ static inline mask_t cache_next(mask_t i, mask_t mask) {
 
 
 
-# 在Runtime中，是如何在消息列表中查找方法的?
+### 在Runtime中，是如何在消息列表中查找方法的?
 
 注:通过以上讲解，我们知道了OC方法在缓存中查找方法实现的过程，但是如果缓存列表中没有找到相关方法实现，则需要进入方法列表中寻找。那么具体是如何寻找的呢？我们通过打开objc-msg-x86_64.s文件找到一段代码如下：
 
