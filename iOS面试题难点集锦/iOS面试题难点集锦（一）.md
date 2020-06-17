@@ -5,7 +5,9 @@
 # 索引
 
 
-1. [什么是Runtime?Runtime方法调用过程?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#什么是Runtime?Runtime方法调用过程?)
+1. [什么是Runtime?Runtime方法是如何在缓存中寻找的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#什么是Runtime?Runtime方法调用过程?)
+
+2. [在Runtime中，是如何在消息列表中查找方法的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#在Runtime中，是如何在消息列表中查找方法的?)
 
 
 
@@ -16,7 +18,7 @@
 
 
 
-# 什么是Runtime?Runtime方法调用过程?
+# 什么是Runtime?Runtime方法是如何在缓存中寻找的?
 
 OC语言是一门动态语言，会将程序的一些决定工作从编译期推迟到运行期。由于OC语言运行时的特性，所以其不仅需要依赖编译期，还需要依赖运行时环境，这就是Objective-C Runtime(运行时环境)系统存在的意义。Runtime基本是由一套C、C++、以及汇编编写的，可见苹果为了动态系统的高效而作出的努力。你可以在[这里下载](https://opensource.apple.com/source/objc4/)到苹果维护的开源代码。苹果和GNU各自维护一个开源的 runtime 版本，这两个版本之间都在努力的保持一致。
 
@@ -195,14 +197,14 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
 
 ```
 
-从上面咱们代码备注我们可以了解到在缓存前，我们需要经历以下几个步骤:
+从上面代码备注我们可以了解到在缓存过程，我们需要经历以下几个步骤:
 
 1.线程上锁，确保线程安全的情况下对方法进行缓存操作。  
 2.在系统初始化完成之前，不能进行方法缓存，若当前类还没有完成初始化操作就直接return返回。  
 3.其他线程也是已经将当前方法缓存进来，因此需要检查一遍是否已经缓存过该方法，如果之前已经缓存过该方法，则直接返回。  
 4.判断散列表容量是否能继续存储该方法，如果超过当前类存储方法散列表内存的3/4，就需要对散列表进行扩容，扩容大小为原来的散列表内存2倍，并且直接扔掉以前缓存的方法，仅缓存当前方法。具体原由后面再详细讲解。如果散列表能够存储下当前方法，则判断是否已经散列表分配空间，如果未分配空间则需要为散列表分配空间。  
-5.通过调用cache->find(sel,receiver)函数获取适合的内存区域存储'imp'。  
-6.判断获取的散列表是否已经存储的有数据了，如果没有存储过数据，则存储数据量+1。  
+5.通过调用`cache->find(sel,receiver)`函数获取适合的内存区域存储`imp`。  
+6.判断获取的散列表`SEL`所对应位置是否已经存储有数据了，如果没有存储过数据，则存储数据量+1。  
 7.将需要缓存方法存入散列表。  
 
 
@@ -298,7 +300,7 @@ bucket_t * cache_t::find(SEL s, id receiver)
 
 ```
 
-`cache->find(SEL s, id receiver)`函数，当存储 Imp 之前需要查询散列表数组中的 `bucket_t`,采用 do{}while()只是为了处理 key 值所 对应的`hash`产生碰撞的问题。总结函数实现步骤如下:  
+`cache->find(SEL s, id receiver)`函数，当存储 `IMP` 之前需要查询散列表数组中的 `bucket_t`,采用 do{}while()只是为了处理 key 值所 对应的`hash`产生碰撞的问题。总结函数实现步骤如下:  
 1.获取散列表(Hash表)  
 2.获取mask，它是一个uint32_t类型的常量  
 3.通过hash函数`cache_hash(s,m)`获取散列表中SEL存储的下标  
@@ -320,10 +322,258 @@ static inline mask_t cache_next(mask_t i, mask_t mask) {
 }
 
 ```
-`cache_next(mask_t i, mask_t mask)`采用向下+1来避免Hash碰撞冲突问题。
+`cache_next(mask_t i, mask_t mask)`方法内部则判断硬件系统如果是__x86_64__或者__i386系列的产品则向上取整 `-1` ,如果是__arm64__则向下取整 `+1`
 
-注:通过以上讲解，我们知道了OC方法在缓存中查找方法实现的过程，但是如果缓存列表中没有找到相关方法实现，则需要进入方法列表中寻找。
+# 在Runtime中，是如何在消息列表中查找方法的?
+
+注:通过以上讲解，我们知道了OC方法在缓存中查找方法实现的过程，但是如果缓存列表中没有找到相关方法实现，则需要进入方法列表中寻找。那么具体是如何寻找的呢？我们通过打开objc-msg-x86_64.s文件找到一段代码如下：
+
+```
+/********************************************************************
+ *
+ * _objc_msgSend_uncached
+ * _objc_msgSend_stret_uncached
+ * _objc_msgLookup_uncached
+ * _objc_msgLookup_stret_uncached
+ *
+ * The uncached method lookup.
+ *
+ ********************************************************************/
+
+    STATIC_ENTRY __objc_msgSend_uncached
+    UNWIND __objc_msgSend_uncached, FrameWithNoSaves
+    
+    // THIS IS NOT A CALLABLE C FUNCTION
+    // Out-of-band r10 is the searched class
+
+    // r10 is already the class to search
+    MethodTableLookup NORMAL    // r11 = IMP
+    jmp *%r11           // goto *imp
+
+    END_ENTRY __objc_msgSend_uncached
+
+    
+    STATIC_ENTRY __objc_msgSend_stret_uncached
+    UNWIND __objc_msgSend_stret_uncached, FrameWithNoSaves
+    
+    // THIS IS NOT A CALLABLE C FUNCTION
+    // Out-of-band r10 is the searched class
+
+    // r10 is already the class to search
+    MethodTableLookup STRET     // r11 = IMP
+    jmp *%r11           // goto *imp
+
+    END_ENTRY __objc_msgSend_stret_uncached
+
+    
+    STATIC_ENTRY __objc_msgLookup_uncached
+    UNWIND __objc_msgLookup_uncached, FrameWithNoSaves
+
+```
+从上面我们可以了解到，如果缓存中没有找到方法，则会执行一个宏 `MethodTableLookup STRET` 这个方法可以看到它后面的注释说明它将 `IMP` 函数指针存放到了r11寄存器中，之后再通过jmp%r11 找到`IMP`完成方法调用。`MethodTableLookup`宏函数实现如下:
+
+```
+.macro MethodTableLookup
+
+    push    %rbp
+    mov %rsp, %rbp
+    
+    sub $$0x80+8, %rsp      // +8 for alignment
+
+    movdqa  %xmm0, -0x80(%rbp)
+    push    %rax            // might be xmm parameter count
+    movdqa  %xmm1, -0x70(%rbp)
+    push    %a1
+    movdqa  %xmm2, -0x60(%rbp)
+    push    %a2
+    movdqa  %xmm3, -0x50(%rbp)
+    push    %a3
+    movdqa  %xmm4, -0x40(%rbp)
+    push    %a4
+    movdqa  %xmm5, -0x30(%rbp)
+    push    %a5
+    movdqa  %xmm6, -0x20(%rbp)
+    push    %a6
+    movdqa  %xmm7, -0x10(%rbp)
+
+    // _class_lookupMethodAndLoadCache3(receiver, selector, class)
+
+.if $0 == NORMAL
+    // receiver already in a1
+    // selector already in a2
+.else
+    movq    %a2, %a1
+    movq    %a3, %a2
+.endif
+    movq    %r10, %a3
+    call    __class_lookupMethodAndLoadCache3
+
+    // IMP is now in %rax
+    movq    %rax, %r11
+
+    movdqa  -0x80(%rbp), %xmm0
+    pop %a6
+    movdqa  -0x70(%rbp), %xmm1
+    pop %a5
+    movdqa  -0x60(%rbp), %xmm2
+    pop %a4
+    movdqa  -0x50(%rbp), %xmm3
+    pop %a3
+    movdqa  -0x40(%rbp), %xmm4
+    pop %a2
+    movdqa  -0x30(%rbp), %xmm5
+    pop %a1
+    movdqa  -0x20(%rbp), %xmm6
+    pop %rax
+    movdqa  -0x10(%rbp), %xmm7
+
+.if $0 == NORMAL
+    cmp %r11, %r11      // set eq for nonstret forwarding
+.else
+    test    %r11, %r11      // set ne for stret forwarding
+.endif
+    
+    leave
+
+.endmacro
+
+```
+我们可以观察到宏在内部调用了_class_lookupMethodAndLoadCache3() 函数，而在该函数内部，它又调用了lookUpImpOrForward()函数,在这个函数中，要么找到方法并执行，要么找不到方法，调用消息转发流程，下面咱们来详细讲讲这个函数实现原理。
+
+```
+IMP lookUpImpOrForward(Class cls, SEL sel, id inst, 
+                       bool initialize, bool cache, bool resolver)
+{
+    IMP imp = nil;
+    bool triedResolver = NO;
+
+    runtimeLock.assertUnlocked();
+
+    // Optimistic cache lookup
+    if (cache) {
+        imp = cache_getImp(cls, sel);
+        if (imp) return imp;
+    }
+
+    // runtimeLock is held during isRealized and isInitialized checking
+    // to prevent races against concurrent realization.
+
+    // runtimeLock is held during method search to make
+    // method-lookup + cache-fill atomic with respect to method addition.
+    // Otherwise, a category could be added but ignored indefinitely because
+    // the cache was re-filled with the old value after the cache flush on
+    // behalf of the category.
+
+    runtimeLock.lock();
+    checkIsKnownClass(cls);
+
+    if (!cls->isRealized()) {
+        cls = realizeClassMaybeSwiftAndLeaveLocked(cls, runtimeLock);
+        // runtimeLock may have been dropped but is now locked again
+    }
+
+    if (initialize && !cls->isInitialized()) {
+        cls = initializeAndLeaveLocked(cls, inst, runtimeLock);
+        // runtimeLock may have been dropped but is now locked again
+
+        // If sel == initialize, class_initialize will send +initialize and 
+        // then the messenger will send +initialize again after this 
+        // procedure finishes. Of course, if this is not being called 
+        // from the messenger then it won't happen. 2778172
+    }
 
 
+ retry:    
+    runtimeLock.assertLocked();
+
+    // Try this class's cache.
+
+    imp = cache_getImp(cls, sel);
+    if (imp) goto done;
+
+    // Try this class's method lists.
+    {
+        Method meth = getMethodNoSuper_nolock(cls, sel);
+        if (meth) {
+            log_and_fill_cache(cls, meth->imp, sel, inst, cls);
+            imp = meth->imp;
+            goto done;
+        }
+    }
+
+    // Try superclass caches and method lists.
+    {
+        unsigned attempts = unreasonableClassCount();
+        for (Class curClass = cls->superclass;
+             curClass != nil;
+             curClass = curClass->superclass)
+        {
+            // Halt if there is a cycle in the superclass chain.
+            if (--attempts == 0) {
+                _objc_fatal("Memory corruption in class list.");
+            }
+            
+            // Superclass cache.
+            imp = cache_getImp(curClass, sel);
+            if (imp) {
+                if (imp != (IMP)_objc_msgForward_impcache) {
+                    // Found the method in a superclass. Cache it in this class.
+                    log_and_fill_cache(cls, imp, sel, inst, curClass);
+                    goto done;
+                }
+                else {
+                    // Found a forward:: entry in a superclass.
+                    // Stop searching, but don't cache yet; call method 
+                    // resolver for this class first.
+                    break;
+                }
+            }
+            
+            // Superclass method list.
+            Method meth = getMethodNoSuper_nolock(curClass, sel);
+            if (meth) {
+                log_and_fill_cache(cls, meth->imp, sel, inst, curClass);
+                imp = meth->imp;
+                goto done;
+            }
+        }
+    }
+
+    // No implementation found. Try method resolver once.
+
+    if (resolver  &&  !triedResolver) {
+        runtimeLock.unlock();
+        resolveMethod(cls, sel, inst);
+        runtimeLock.lock();
+        // Don't cache the result; we don't hold the lock so it may have 
+        // changed already. Re-do the search from scratch instead.
+        triedResolver = YES;
+        goto retry;
+    }
+
+    // No implementation found, and method resolver didn't help. 
+    // Use forwarding.
+
+    imp = (IMP)_objc_msgForward_impcache;
+    cache_fill(cls, sel, imp, inst);
+
+ done:
+    runtimeLock.unlock();
+
+    return imp;
+}
+
+```
+
+上面代码比较长，咱们将主要实现功能罗列如下:
+
+1.Runtime不加锁。
+2.如果存在缓存，则读取缓存内容，因为方法缓存列表内没有找到对应方法实现，所以这一步应该不可能缓存，不过当前函数顶部有一段系统注释 "cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)"讲述了为何需要写上这段代码，因为其他地方会用到缓存。
+3.Runtime加上锁，并且检查Class是否合法
+4.如果类未加载，则在此刻加载,这里通常是处理懒加载的
+5.如果需要初始化，但是当前Class并没有初始化，此时需要进行初始化操作
+6.接下就是就是获取通过SEL去方法列表查找，当然会先去缓存中再次查找一遍，如果缓存没找到此时分为两种情况，一种情况是系统方法被优化过已经排好序的，则会采用二分查找，另一种情况是系统没有排好序，则会直接遍历查找方法实现。并且找到以后存入缓存中
+7.如果当前类还是找不到方法实现，则会去父类缓存中查找，如果缓存中命中，但是当前类没有该方法，则会将命中的方法实现存入当前类的缓存中，如果父类的缓存中没有，就会去父类的方法列表中查找，如果找到同样存入子类也就是当前类的缓存中。
+8.最后，如果还是没有找到方法，则会执行消息转发流程。
 
 
