@@ -564,11 +564,11 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 ### Runtime在项目中的运用
 
 1.消息转发 当需要动态指定某一个对象来实现某一个方法  
-2.方法交换。用户埋点的时候，写一个工具实现方法交换 添加 vc 分类，load 中把系统方法 替换。  
-3.字典转模型 YYModel。  
-4.KVO 实现。  
-5.处理崩溃(NSDictionary, NSMutableDictionary, NSArray, NSMutableArray 的处理) 在开发过程中， 有时候会出现 set object for key 的时候 object 为 Nil 或者 Key 为 Nil， 又或 者初始化array, dic的时候由于数据个数与指定的长度不一致造成崩溃。此时利用runtime 对异常情况进行捕捉，提前 return 或者抛弃多余的长度。通过写这些对象的分类，
-6.在 Load 中交换方法 处理按钮的重复点击方法交换。
+2.方法交换。用户埋点的时候，写一个工具实现方法交换 添加 `VC` 分类，`load` 中把系统方法 替换。  
+3.字典转模型 `YYModel`。  
+4.`KVO` 实现。  
+5.处理崩溃(NSDictionary, NSMutableDictionary, NSArray, NSMutableArray 的处理) 在开发过程中， 有时候会出现 set object for key 的时候 object 为 Nil 或者 Key 为 Nil， 又或 者初始化array, dic的时候由于数据个数与指定的长度不一致造成崩溃。此时利用runtime 对异常情况进行捕捉，提前 return 或者抛弃多余的长度。  
+6.通过写这些对象的分类，在 `load` 中交换方法 处理按钮的重复点击方法交换。
 
 
 
