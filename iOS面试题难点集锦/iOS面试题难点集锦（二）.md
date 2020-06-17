@@ -4,21 +4,21 @@
 
 # 索引
 
-1.[main函数之前程序做了些什么？]（#main函数之前程序做了些什么）
-2.[NSArray 和 NSMutableArray使用Copy和MutableCopy有何不同?](#nsarray-和-nsmutablearray使用copy和mutablecopy有何不同)
-3.[initialize 和 init 以及 load 调用时机?](#initialize-和-init-以及-load-调用时机)
-4.[GCD 全称是啥?什么时候使用 GCD?](gcd-全称是啥-什么时候使用-gcd)
-5.[NSURLSession 和 NSURLConnection 区别?](#nsurlsession-和-nsurlconnection-区别?)
-6.[引用计数设计原理](#引用计数设计原理)
-7.[Hash表扩容问题](#hash表扩容问题)
-8.[深入了解+load方法的执行顺序](#深入了解+load方法的执行顺序)
-9.[load 和 initialize 方法的区别](#load-和-initialize-方法的区别)
-10.[RunLoop 的 CFRunLoopModeRef 结构体有啥内容? ](#runLoop-的-cfrunloopmoderef-结构体有啥内容)
-11.[Category为现有的类提供拓展性，为何它可以提供拓展性?](#category为现有的类提供拓展性，为何它可以提供拓展性)
-12.[NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性)
-13.[load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作是，是否需要自动释放池)
-14.[AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的?)
-15.[UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)
+1. [main函数之前程序做了些什么？](#main函数之前程序做了些什么)  
+2. [NSArray 和 NSMutableArray使用Copy和MutableCopy有何不同?](#nsarray-和-nsmutablearray使用copy和mutablecopy有何不同)  
+3. [initialize 和 init 以及 load 调用时机?](#initialize-和-init-以及-load-调用时机)  
+4. [GCD 全称是啥?什么时候使用 GCD?](gcd-全称是啥-什么时候使用-gcd)  
+5. [NSURLSession 和 NSURLConnection 区别?](#nsurlsession-和-nsurlconnection-区别?)  
+6. [引用计数设计原理](#引用计数设计原理)  
+7. [Hash表扩容问题](#hash表扩容问题)  
+8. [深入了解+load方法的执行顺序](#深入了解+load方法的执行顺序)  
+9. [load 和 initialize 方法的区别](#load-和-initialize-方法的区别)  
+10. [RunLoop 的 CFRunLoopModeRef 结构体有啥内容? ](#runLoop-的-cfrunloopmoderef-结构体有啥内容)  
+11. [Category为现有的类提供拓展性，为何它可以提供拓展性?](#category为现有的类提供拓展性-为何它可以提供拓展性)  
+12. [NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性)  
+13. [load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作是，是否需要自动释放池)  
+14. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
+15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)  
 
 
 
@@ -258,7 +258,7 @@ __CFPortSet _portSet;
 第二个 Observer 会监听 RunLoop 的进入休眠和即将退出 RunLoop 两种状态，在即将进入休 眠时会调用 objc_autoreleasePoolPop() 和 objc_autoreleasePoolPush() 根据情况从最新加入的 对象一直往前清理直到遇到哨兵对象。而在即将退出 RunLoop 时会调用 objc_autoreleasePoolPop() 释放自动自动释放池内对象。这个 Observer 的 order 是 2147483647， 优先级最低，确保发生在所有回调操作之后。  
 
 
-### Category为现有的类提供拓展性，为何它可以提供拓展性?
+### Category为现有的类提供拓展性 为何它可以提供拓展性?
 
 
 在App启动加载镜像文件时，会在`_read_images` 函数中调用 `remethodizeClass` 函数，然后再调用 `attachCategories` 函数，完成向类中添加 `Category` 的工作。原理就是向 `class_rw_t` 中的 `method_array_t`,`property_array_t`,`protocol_array_t` 数组中分别添加 `method_list_t`,`property_list_t`,`protocol_list_t` 指针。`xxx_array_t` 可以存储对应的 `xxx_list_t` 的指针数组。
