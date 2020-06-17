@@ -34,7 +34,7 @@ OC􏰈􏰉􏰈􏰉语言在编译期都会被编译为C语言的Runtime代码，
 
 ## Runtime方法的调用
 
-除了'+(void)load'以外，所有的OC方法调用在底层都会被转化为'objc_msgSend:'函数的调用，它是这样的结构:
+除了 `+(void)load` 以外，所有的OC方法调用在底层都会被转化为'objc_msgSend:'函数的调用，它是这样的结构:
 ```
 id objc_msgSend ( id self, SEL op, ... );
 
