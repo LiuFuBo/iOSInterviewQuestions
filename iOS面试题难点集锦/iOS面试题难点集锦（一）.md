@@ -5,9 +5,9 @@
 # 索引
 
 
-1. [什么是Runtime?Runtime方法是如何在缓存中寻找的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#什么是Runtime?Runtime方法调用过程?)
+1. [什么是Runtime?Runtime方法是如何在缓存中寻找的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md# 什么是Runtime?Runtime方法是如何在缓存中寻找的?)
 
-2. [在Runtime中，是如何在消息列表中查找方法的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md#在Runtime中，是如何在消息列表中查找方法的?)
+2. [在Runtime中，是如何在消息列表中查找方法的?](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（一）.md# 在Runtime中，是如何在消息列表中查找方法的?)
 
 
 
@@ -458,15 +458,6 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         if (imp) return imp;
     }
 
-    // runtimeLock is held during isRealized and isInitialized checking
-    // to prevent races against concurrent realization.
-
-    // runtimeLock is held during method search to make
-    // method-lookup + cache-fill atomic with respect to method addition.
-    // Otherwise, a category could be added but ignored indefinitely because
-    // the cache was re-filled with the old value after the cache flush on
-    // behalf of the category.
-
     runtimeLock.lock();
     checkIsKnownClass(cls);
 
@@ -477,14 +468,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 
     if (initialize && !cls->isInitialized()) {
         cls = initializeAndLeaveLocked(cls, inst, runtimeLock);
-        // runtimeLock may have been dropped but is now locked again
-
-        // If sel == initialize, class_initialize will send +initialize and 
-        // then the messenger will send +initialize again after this 
-        // procedure finishes. Of course, if this is not being called 
-        // from the messenger then it won't happen. 2778172
     }
-
 
  retry:    
     runtimeLock.assertLocked();
@@ -548,10 +532,6 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         runtimeLock.unlock();
         resolveMethod(cls, sel, inst);
         runtimeLock.lock();
-        // Don't cache the result; we don't hold the lock so it may have 
-        // changed already. Re-do the search from scratch instead.
-        triedResolver = YES;
-        goto retry;
     }
 
     // No implementation found, and method resolver didn't help. 
