@@ -15,8 +15,8 @@
 9. [load 和 initialize 方法的区别](#load-和-initialize-方法的区别)  
 10. [RunLoop 的 CFRunLoopModeRef 结构体有啥内容? ](#runLoop-的-cfrunloopmoderef-结构体有啥内容)  
 11. [Category为现有的类提供拓展性，为何它可以提供拓展性?](#category为现有的类提供拓展性-为何它可以提供拓展性)  
-12. [NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性)  
-13. [load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作是，是否需要自动释放池)  
+12. [NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容-为何不会覆盖咱们自定义的属性)  
+13. [load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作-是否需要自动释放池)  
 14. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
 15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)  
 
@@ -24,7 +24,7 @@
 
 ### main函数之前程序做了些什么？
 
-我们很少关注应用在启动前，系统会为我们做哪些事情，首先系统会先读取App 的可执行文件(Mach-O 文件)，从里面获得 dyld（动态链接库） 的路径，然后加载 dyld（动态链接库）并进行以下流程加载：
+我们很少关注应用在启动前，系统会为我们做哪些事情，首先系统会先读取App 的可执行文件(Mach-O 文件)，从里面获得 `dyld`（动态链接库） 的路径，然后加载 `dyld`（动态链接库）并进行以下流程加载：
 
 1、设置运行环境  
 2、加载共享缓存  
@@ -93,8 +93,8 @@ NSMutableArray 使用Copy 和 MutableCopy 都是深拷贝。
 
 #### 2.拷贝出来的对象是可变数组还是非可变数组
 
-NSArray Copy拷贝出来的是一个不可变数组，MutableCopy拷贝出来的是一个可变数组。  
-NSMutableArray Copy拷贝出来的是一个不可变数组，MutableCopy拷贝出来的是一个可变数组。  
+NSArray         `Copy`拷贝出来的是一个不可变数组，   `MutableCopy`拷贝出来的是一个可变数组。  
+NSMutableArray  `Copy`拷贝出来的是一个不可变数组，   `MutableCopy`拷贝出来的是一个可变数组。  
 
 
 ### initialize 和 init 以及 load 调用时机?
@@ -104,14 +104,16 @@ NSMutableArray Copy拷贝出来的是一个不可变数组，MutableCopy拷贝�
 
 ### GCD 全称是啥 什么时候使用 GCD?
 
-GCD 全称 Grand Central Dispatch 优秀的中央调度器  
+GCD 全称 `Grand Central Dispatch` 优秀的中央调度器  
+
 GCD 优势:  
 1.GCD 是苹果为多核的并行运算提出的解决方案。    
 2.GCD 会自动利用更多的 CPU 内核。    
 3.GCD 可以自动管理线程生命周期。 
 
 GCD 使用场景:  
-GCD 定时器、切换线程、耗时操作、多个异步操作完成后再更新UI   
+GCD 定时器、切换线程、耗时操作、多个异步操作完成后再更新UI。  
+
 1、dispatch_barrier_sync 需要等待自己的任务(barrier)结束之后，才会继续添加并执行写 在 barrier 后面的任务(4、5、6)，然后执行后面的任务。    
 2、dispatch_barrier_async 将自己的任务(barrier)插入到 queue 之后，不会等待自己的任务 结束，它会继续把后面的任务(4、5、6)插入到 queue，然后执行任务。  
 
@@ -136,30 +138,30 @@ NSURLSession 的构造方法(sessionWithConfiguration:delegate:delegateQueue)中
 
 ### 引用计数设计原理
 
-引用计数设计不仅我们的系统是否支持Tagged Pointer有关系，而且还跟系统isa指针是否优化过有关系，具体的实现原理可参考这篇文章[Objective-C 引用计数原理](https://www.jianshu.com/p/12d6e64c07bb)。
+引用计数设计不仅我们的系统是否支持`Tagged Pointer`有关系，而且还跟系统`isa`指针是否优化过有关系，具体的实现原理可参考这篇文章[Objective-C 引用计数原理](https://www.jianshu.com/p/12d6e64c07bb)。
 
 
 ### Hash表扩容问题
 
 
 
-哈希表是一个散列表，里面存储的是键值对(key-value)映射。它是一种根据关键码 key 来 寻找值 value 的数据映射结构。  
+哈希表是一个散列表，里面存储的是键值对(key-value)映射。它是一种根据关键码 key 来寻找值 value 的数据映射结构。  
 
 
-装载因子，也叫负载因子(load factor)，它表示散列表的装满程度。当当前表的实际装载因 子达到默认的负载因子值(负载极限)时，就会触发哈希表的扩容。  
+`装载因子`，也叫负载因子(load factor)，它表示散列表的装满程度。当当前表的实际装载因 子达到默认的负载因子值(负载极限)时，就会触发哈希表的扩容。  
 
 
-一般情况下，默认的负载因子值不能太大，因为其虽然减少了空间开销，但是增加了查询的 时间成本;也不能太小，因为这样还会增加 rehash 的次数，性能较低。
+一般情况下，默认的负载因子值不能太大，因为其虽然减少了空间开销，但是增加了查询的 时间成本;也不能太小，因为这样还会增加 `rehash` 的次数，性能较低。
 
 
-Hashcode  
+`Hashcode` 
 哈希码是一种算法，尽量为不同的对象生成不同的哈希码。(但不代表不同对象的哈希码一 定不同。)它可以作为相同对象判断的依据。同一对象如果没有经过修改，前后不同时刻生 成的哈希码应该是一致的。
 
-不过我们知道，判断是否相同已经有了 equals()方法，那为什么还需要 Hashcode()方法呢? 这是因为 equals()方法的效率远不如 Hashcode()方法。
+不过我们知道，判断是否相同已经有了 `equals()` 方法，那为什么还需要 `Hashcode()`方法呢? 这是因为 `equals()`方法的效率远不如 `Hashcode()`方法。
 
-同样的问题，既然 Hashcode()性能那么高，那为什么还需要 equals()方法呢? 这是因为 equals()方法是完全可靠的，而仅仅基于哈希码比较是不完全可靠的。 如果两个对象相同，hashcode 一定相同。
+同样的问题，既然 `Hashcode()`性能那么高，那为什么还需要 `equals()`方法呢? 这是因为 `equals()`方法是完全可靠的，而仅仅基于哈希码比较是不完全可靠的。 如果两个对象相同，`Hashcode()` 一定相同。
 
-但是 hashcode 相同的两个对象不一定相同。 而如果两个对象相同，equals()方法得到的一定为 true。所以说 Java 中的 HashMap 既提供对 equals()的重写，也提供对 Hashcode()的重写。 于是，对于这种有着大量且快速的对象对比需求的 hash 容器，我们将两种方法结合起来用。 先使用 Hashcode()方法，如果两个对象产生的哈希码不相同，那么这两个对象一定不同，不 再进行后续比较; 而如果两个对象产生的哈希码相同，那么这两个对象有可能相同，于是再使用 equals()方法 进行比较。  
+但是 `Hashcode()` 相同的两个对象不一定相同。 而如果两个对象相同，`equals()`方法得到的一定为 `true`。所以说 `Java` 中的 `HashMap` 既提供对 `equals()`的重写，也提供对 `Hashcode()`的重写。 于是，对于这种有着大量且快速的对象对比需求的 `hash` 容器，我们将两种方法结合起来用。 先使用 `Hashcode()`方法，如果两个对象产生的哈希码不相同，那么这两个对象一定不同，不 再进行后续比较; 而如果两个对象产生的哈希码相同，那么这两个对象有可能相同，于是再使用 equals()方法 进行比较。  
 
 
 哈希冲突  
@@ -172,7 +174,7 @@ Hashcode
 
 开放地址法: 
 
-这种方法的意思是当关键字 Key 的哈希地址 p=H(key)出现冲突是，以 p 为基础， 产生另一个哈希地址 p1,如果 p1 仍然冲突，产生另外一个哈希地址 P2,直到找出不冲突的哈 希地址 Pi,将相应元素存入其中。  
+这种方法的意思是当关键字 Key 的哈希地址 p=H(key)出现冲突是，以 p 为基础， 产生另一个哈希地址 `p1`,如果 `p1` 仍然冲突，产生另外一个哈希地址 P2,直到找出不冲突的哈 希地址 Pi,将相应元素存入其中。  
 
 线性探测再散列
 
@@ -207,43 +209,45 @@ Hashcode
 ### 深入了解+load方法的执行顺序
 
 
-1、+load 方法是在 dyld 阶段的执行初始化方法步骤中执行的，其调用为 load_images->call_load_methods。
-2、一个类在代码中不主动调用+load 方法的情况下，其类、子类实现的+load 方法都会分别执行一次。  
-3、父类的+load 方法执行在前，子类的+load 方法在后。  
-4、在同一镜像中，所有类的+load 方法执行在前，所有分类的+load 方法执行在后。  
+1、`+load` 方法是在 `dyld` 阶段的执行初始化方法步骤中执行的，其调用为 `load_images->call_load_methods`。    
+2、一个类在代码中不主动调用+load 方法的情况下，其类、子类实现的`+load` 方法都会分别执行一次。  
+3、父类的 `+load` 方法执行在前，子类的 `+load` 方法在后。  
+4、在同一镜像中，所有类的+load 方法执行在前，所有分类的 `+load` 方法执行在后。  
 5、同一镜像中，没有关系的两个类的执行顺序与编译顺序有关(Compile Sources 中的顺序)。  
 6、同一镜像中所有的分类的+load方法的执行顺序与编译顺序有关(Compile Sources中的顺 序)，与是谁的分类，同一个类有几个分类无关。  
-7、同一镜像中主工程的+load 方法执行在前，静态库的+load 方法执行在后。有多个静态库时， 静态库之间的执行顺序与编译顺序有关(Link Binary With Libraries 中的顺序)。  
-8、不同镜像中，动态库的+load 方法执行在前，主工程的+load 执行在后，多个动态库的+load 方法的执行顺序编译顺序有关(Link Binary With Libraries 中的顺序)。  
+7、同一镜像中主工程的 `+load` 方法执行在前，静态库的 `+load` 方法执行在后。有多个静态库时， 静态库之间的执行顺序与编译顺序有关(Link Binary With Libraries 中的顺序)。  
+8、不同镜像中，动态库的 `+load` 方法执行在前，主工程的 `+load` 执行在后，多个动态库的 `+load` 方法的执行顺序编译顺序有关(Link Binary With Libraries 中的顺序)。  
 
 ### load 和 initialize 方法的区别
 
 
-load 方法采用的是 IMP 指针地址直接调用，initialize 采用的是消息转发机制。  
+`load` 方法采用的是 `IMP` 指针地址直接调用，`initialize` 采用的是消息转发机制。  
 
-load 是只要类所在文件被引用就会被调用，而 initialize 是在类或者其子类的第一个方法被调 用前调用。所以如果类没有被引用进项目，就不会有load 调用;但即使类文件被引用进来， 但是没有使用，那么 initialize 也不会被调用。  
+`load` 是只要类所在文件被引用就会被调用，而 `initialize` 是在类或者其子类的第一个方法被调用前调用。所以如果类没有被引用进项目，就不会有`load`调用;但即使类文件被引用进来， 但是没有使用，那么 `initialize` 也不会被调用。  
 
 关于load方法特点  
-1、只要程序启动就会将所有类的代码加载到内存中(在 main 函数执行之前), 放到代码区 (无论该类有没有被使用到都会被调用)。  
-2、+load 方法会在当前类被加载到内存的时候调用, 有且仅会调用一次。    
-3、当父类和子类都实现+load 方法时, 会先调用父类的+load 方法, 再调用子类的+load方法。  
-4、先加载原始类，再加载分类的+load 方法。  
-5、当子类未实现+load 方法时，不会调用多一次父类的+load 方法(因为 load 采用 IMP 指针 直接调用的)。  
-6、多个类都实现+load 方法，+load 方法的调用顺序，与 Compile Sources 中出现的顺序一致。 
+
+1、只要程序启动就会将所有类的代码加载到内存中(在 `main` 函数执行之前), 放到代码区 (无论该类有没有被使用到都会被调用)。  
+2、`+load` 方法会在当前类被加载到内存的时候调用, 有且仅会调用一次。    
+3、当父类和子类都实现+load 方法时, 会先调用父类的 `+load` 方法, 再调用子类的 `+load`方法。  
+4、先加载原始类，再加载分类的 `+load` 方法。  
+5、当子类未实现 `+load` 方法时，不会调用多一次父类的 `+load` 方法(因为 `load` 采用 `IM`P 指针直接调用的)。  
+6、多个类都实现 `+load` 方法，`+load` 方法的调用顺序，与 Compile Sources 中出现的顺序一致。 
 
 关于initialize特点   
+
 1、当类第一次被使用的时候就会调用(创建类对象的时候)。  
-2、initialize 方法在整个程序的运行过程中只会被调用一次, 无论你使用多少次这个类都只会 调用一次。  
-3、initialize 用于对某一个类进行一次性的初始化。  
-4、先调用父类的 initialize 再调用子类的 initialize。  
-5、当子类未实现 initialize 方法时，会把父类的实现继承过来调用一遍，再次之前父类的 initialize 方法会被优先调用一次。  
-6、当有多个 Category 都实现了 initialize 方法，会覆盖类中的方法，只执行一个(会执行 Compile Sources 列表中最后一个 Category 的 initialize 方法)。 
+2、`initialize` 方法在整个程序的运行过程中只会被调用一次, 无论你使用多少次这个类都只会调用一次。  
+3、`initialize` 用于对某一个类进行一次性的初始化。  
+4、先调用父类的 `initialize` 再调用子类的 `initialize`。  
+5、当子类未实现 `initialize` 方法时，会把父类的实现继承过来调用一遍，再次之前父类的 `initialize` 方法会被优先调用一次。  
+6、当有多个 `Category` 都实现了 `initialize` 方法，会覆盖类中的方法，只执行一个(会执行 Compile Sources 列表中最后一个 `Category` 的 `initialize` 方法)。 
 
 
 ### RunLoop 的 CFRunLoopModeRef 结构体有啥内容? 
 
 
-主要包含了两个 source source0 和 source1 
+主要包含了两个Source 既`source0` 和 `source1`
 
 ```
 CFMutableSetRef _sources0; CFMutableSetRef _sources1;
@@ -251,11 +255,10 @@ CFMutableSetRef _sources0; CFMutableSetRef _sources1;
 CFMutableArrayRef _observers; 一个 timers
 CFMutableArrayRef _timers; 一个 portSet
 __CFPortSet _portSet;
-
 ```
-其实 NSRunLoop 的本质是一个消息机制的处理模式，runloop 的运行，其实就是不停的通过 observer 监听各种事件，包含各种 source 事件，timer，port 等等，如果有这些事件，那就 处理，没有事件，就会进入休眠，不停的重复上述过程。RunLoop 是一种观察者模式 AutoreleasePool 与 RunLoop 并没有直接的关系，之所以将两个话题放到一起讨论最主要的原 因是因为在 iOS 应用启动后会注册两个 Observer 管理和维护 AutoreleasePool 第一个 Observer 会监听 RunLoop 的进入，它会回调 objc_autoreleasePoolPush()向当前的 AutoreleasePoolPage 增加一个哨兵对象标志创建自动释放池。这个 Observer 的 order 是-2147483647 优先级最高， 确保发生在所有回调操作之前。  
+其实 `NSRunLoop` 的本质是一个消息机制的处理模式，`runloop` 的运行，其实就是不停的通过 `observer` 监听各种事件，包含各种 `source` 事件，`timer`，`port` 等等，如果有这些事件，那就 处理，没有事件，就会进入休眠，不停的重复上述过程。`RunLoop` 是一种观察者模式 `AutoreleasePool` 与 `RunLoop` 并没有直接的关系，之所以将两个话题放到一起讨论最主要的原 因是因为在 iOS 应用启动后会注册两个 `Observer` 管理和维护 `AutoreleasePool` 第一个 `Observer` 会监听 `RunLoop` 的进入，它会回调 `objc_autoreleasePoolPush()`向当前的 `AutoreleasePoolPage` 增加一个哨兵对象标志创建自动释放池。这个` Observer `的 `order` 是 `-2147483647` 优先级最高， 确保发生在所有回调操作之前。  
 
-第二个 Observer 会监听 RunLoop 的进入休眠和即将退出 RunLoop 两种状态，在即将进入休 眠时会调用 objc_autoreleasePoolPop() 和 objc_autoreleasePoolPush() 根据情况从最新加入的 对象一直往前清理直到遇到哨兵对象。而在即将退出 RunLoop 时会调用 objc_autoreleasePoolPop() 释放自动自动释放池内对象。这个 Observer 的 order 是 2147483647， 优先级最低，确保发生在所有回调操作之后。  
+第二个 `Observer` 会监听 `RunLoop` 的进入休眠和即将退出 `RunLoop` 两种状态，在即将进入休 眠时会调用 `objc_autoreleasePoolPop()` 和 `objc_autoreleasePoolPush()` 根据情况从最新加入的 对象一直往前清理直到遇到哨兵对象。而在即将退出 `RunLoop` 时会调用 `objc_autoreleasePoolPop()` 释放自动自动释放池内对象。这个 `Observer` 的 `order` 是 `2147483647`， 优先级最低，确保发生在所有回调操作之后。  
 
 
 ### Category为现有的类提供拓展性 为何它可以提供拓展性?
@@ -279,14 +282,13 @@ locstamped_category_t list[0];
 其实编译器会根据情况在 `objc_msgSend`,`objc_msgSend_stret`,`objc_msgSendSuper`,或 `objc_msgSendSuper_stret` 四个方法中选择一个来调用。如果消息是传递给超类，那么会调用 名字带有 `super` 的函数，如果是在 `i386` 平台处理返回类型为浮点数的消息事，需要用到 `objc_msgSend_fpret` 函数处理 `fpret` 就是`fp"+"ret` 分别代表`floating-point`和`return`。
 
 
-### NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?
+### NSObject对象苹果增加了一些内容 为何不会覆盖咱们自定义的属性?
 
 
 `objc_class` 包含了 `class_data_bits_t`，`class_data_bits_t` 存储了 `class_rw_t` 的指针，而 `class_rw_t` 结构体又包含 `class_ro_t` 的指针。
 
 ```
 struct class_ro_t { 
-
 uint32_t flags;
 uint32_t instanceStart;
 uint32_t instanceSize; #ifdef __LP64__
@@ -302,13 +304,13 @@ method_list_t *baseMethods() const {
 	return baseMethodList;
     } 
 };
-
 ```
+
 假如苹果在新版本的 SDK 中向 NSObject 类增加了一些内容，NSObject 的占据的内存区域 会扩大，开发者以前编译出的二进制中的子类就会与新的 NSObject 内存有重叠部分。于是在编译期会给 `instanceStart` 和 `instanceSize` 赋值，确定好编译时每个类的所占内存区域起 始偏移量和大小，这样只需将子类与基类的这两个变量作对比即可知道子类是否与基类有重叠，如果有，也可知道子类需要挪多少偏移量。  
 
 
 
-### load方法里如果有大量对象的创建的操作是，是否需要自动释放池?
+### load方法里如果有大量对象的创建的操作 是否需要自动释放池?
 
 
 `load`方法外部有一个 `runtime`。但是 他会调完 所有的`+load` 才会结束。。所以对于局部的峰值来说并不能优化。
@@ -318,23 +320,18 @@ method_list_t *baseMethods() const {
 
 
 1. didFinishLaunchingWithOptions  
-
 当应用程序正常启动时(不包括已在后台转到前台的情况)，调用此回调。launchOptions 是 启动参数，假如用户通过点击 push 通知启动的应用，(这是非正常启动的情况，包括本地通 知和远程通知)，这个参数里会存储一些 push 通知的信息。  
 
 2.applicationWillResignActive   
-
 当应用程序即将从活动状态移动到非活动状态时发送。对于某些类型的临时中断(例如来电 或 SMS 消息)，或者当用户退出应用程序并开始转换到后台状态时，可能会出现这种情况。 使用此方法暂停正在进行的任务，禁用计时器，并使图形呈现回调无效。游戏应该使用这种 方法暂停游戏。调用时机可能有以下几种:锁屏、单击 HOME 键、下拉状态栏、双击 HOME 弹出底部状态栏等情况
 
 3.applicationDidBecomeActive
-
 当应用程序全新启动，或者在后台转到前台，完全激活时，都会调用这个方法。它会重新启 动应用程序处于非活动状态时暂停(或尚未启动)的任何任务,如果应用程序是以前运行在后 台，这时可以选择刷新用户界面。
 
 4.applicationDidEnterBackground
-
 使用此方法释放共享资源、保存用户数据、使计时器失效，并存储足够的应用程序状态信息， 以便在以后终止应用程序时将其恢复到当前状态。如果你的应用程序支持后台执行，这个方 法会被调用，而不是 applicationWillTerminate:当用户退出时。
 
 5.applicationWillEnterForeground 
-
 被调用作为从后台到活动状态转换的一部分;在这里，您可以撤消在进入后台时所做的许多 更改。如果应用不在后台状态，而是直接启动，则不会回调此方法。  
 
 6.applicationWillTerminate  
@@ -348,42 +345,32 @@ method_list_t *baseMethods() const {
 
 
 1.init方法
-
 这里包含了非 storyBoard 创建 UIViewController 调用 initWithNibName:bundle: 如果用 storyBoard 进行视图管理会调用 initWithCoder。  
 
 2.loadView  
-
 当执行到 loadView 方法时，如果视图控制器是通过 nib 创建，那么视图控制器已经从 nib 文 件中被解档并创建好了，接下来任务就是对 view 进行初始化。  
 
 3.viewDidload  
-
 当 loadView 将 view 载入内存中，会进一步调用 viewDidLoad 方法来进行进一步设置。此时， 视图层次已经放到内存中，通常，我们对于各种初始化数据的载入，初始设定、修改约束、 移除视图等很多操作都可以这个方法中实现。  
 
 4.viewWillAppear  
-
 系统在载入所有的数据后，将会在屏幕上显示视图，这时会先调用这个方法，通常我们会在 这个方法对即将显示的视图做进一步的设置。比如，设置设备不同方向时该如何显示;设置 状态栏方向、设置视图显示样式等。  
 
 5.viewWillLayoutSubviews  
-
 view 即将布局其 Subviews。 比如 view 的 bounds 改变了(例如:状态栏从不显示到显示,视图 方向变化)，要调整 Subviews 的位置，在调整之前要做的工作可以放在该方法中实现。  
 
 6.viewDidAppear  
-
 在 view 被添加到视图层级中以及多视图，上下级视图切换时调用这个方法，在这里可以对 正在显示的视图做进一步的设置。  
 
 7.viewWillDisappear 
-
 在视图切换时，当前视图在即将被移除、或被覆盖是，会调用该方法，此时还没有调用 removeFromSuperview。  
 
 8.viewDidDisappear  
-
 view 已经消失或被覆盖，此时已经调用 removeFromSuperView。  
 
 9.dealloc
-
 视图被销毁，此次需要对你在 init 和 viewDidLoad 中创建的对象进行释放。  
 
 10.didReceiveMemoryWarning  
-
 在内存足够的情况下，app的视图通常会一直保存在内存中，但是如果内存不够，一些没有 正在显示的 viewController 就会收到内存不足的警告，然后就会释放自己拥有的视图，以达到释放内存的目的。但是系统只会释放内存，并不会释放对象的所有权，所以通常我们需要 在这里将不需要显示在内存中保留的对象释放它的所有权，将其指针置 nil。  
 
