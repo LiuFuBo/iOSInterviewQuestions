@@ -580,4 +580,33 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 <img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/runloop.png"/>
 </div>
 
+通过上图，我们可以总结屏幕点击触发流程如下：
+
+1、手指点击屏幕，感应器获取到信号，在内部由 `IOKit.framework` 框架将点击电信号封装成IOHIDEvent事件
+2、`springboard` 桌面操作系统接收事件，并通过 `mach port` 端口转发（PIC进程间通信）将 `IOHIDEvent` 事件传递给主线程处理
+3、主线程 RunLoop 此时注册的`source1`(专门处理系统级事件)回调被触发，然后`source1`通过内部将信息转发给了`source0`处理(专门处理应用内事件)
+4、然后事件被传递到UIApplication
+5、通过UIApplication触发`sendEvent`事件转发消息，将消息扔给UIWindow
+6、UIWindow通过调用 `hitTest:withEvent` 和 `pointInside:withEvent` 层层传递将事件传递给能够响应的控件
+7、系统判断找到的控件是否能够响应该事件，如果能响应则走响应流程，如果不能响应则采用回溯方法，寻找能够响应该事件的控件
+8、如果在回溯过程中找到能响应该事件的控件则进行响应，如果事件回溯到`UIApplication`还是没能找到响应该事件的控件，则直接丢弃事件
+
+
+在寻找能够响应该事件的控件过程中有两个方法被频繁的调用了:
+
+```
+// 先判断点是否在View内部，然后遍历subViews
+- (nullable UIView *)hitTest:(CGPoint)point withEvent:(nullable UIEvent *)event;  
+//判断点是否在这个View内部
+- (BOOL)pointInside:(CGPoint)point withEvent:(nullable UIEvent *)event; 
+
+```
+具体搜寻过程就是系统通过遍历屏幕范围内的view(注：如果遇到view内部还有subview，则会采用倒序遍历方法，加快遍历的速度)。然后调用 `hitTest:withEvent:` 判断屏幕点击事件是否在该view内部，实现流程如下:
+
+> 1.判断该层级是否能够响应事件，包括透明度是否大于0.01,是否用户交互事件为YES，是否隐藏了当前view
+> 2.判断该点是否在当前view范围内。具体是通过调用 `pointInside:withEvent:`来实现
+> 3.如果存在则遍历子view，直到找到被点击的view，如果该view能够响应事件则由该view执行响应过程，如果不能响应则调用 `nextResponder` 方法将事件传递给下一个响应者来响应。
+
+
+
 
