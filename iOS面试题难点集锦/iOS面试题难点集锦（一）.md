@@ -603,9 +603,9 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 ```
 具体搜寻过程就是系统通过遍历屏幕范围内的view(注：如果遇到view内部还有subview，则会采用倒序遍历方法，加快遍历的速度)。然后调用 `hitTest:withEvent:` 判断屏幕点击事件是否在该view内部，实现流程如下:
 
-> 1.判断该层级是否能够响应事件，包括透明度是否大于0.01,是否用户交互事件为YES，是否隐藏了当前view
-> 2.判断该点是否在当前view范围内。具体是通过调用 `pointInside:withEvent:`来实现
-> 3.如果存在则遍历子view，直到找到被点击的view，如果该view能够响应事件则由该view执行响应过程，如果不能响应则调用 `nextResponder` 方法将事件传递给下一个响应者来响应。
+> 1.判断该层级是否能够响应事件，包括透明度是否大于0.01,是否用户交互事件为YES，是否隐藏了当前view  
+> 2.判断该点是否在当前view范围内。具体是通过调用 `pointInside:withEvent:`来实现  
+> 3.如果存在则遍历子view，直到找到被点击的view，如果该view能够响应事件则由该view执行响应过程，如果不能响应则调用 `nextResponder` 方法将事件传递给下一个响应者来响应  
 
 
 
