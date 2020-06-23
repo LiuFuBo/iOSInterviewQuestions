@@ -11,7 +11,7 @@
 
 3. [Runtime在项目中的运用](#Runtime在项目中的运用)
 
-
+4. [RunLoop和屏幕点击事件传递链以及响应链关系](#RunLoop和屏幕点击事件传递链以及响应链关系)
 
 
 
@@ -570,5 +570,14 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 5.处理崩溃(NSDictionary, NSMutableDictionary, NSArray, NSMutableArray 的处理) 在开发过程中， 有时候会出现 set object for key 的时候 object 为 Nil 或者 Key 为 Nil， 又或 者初始化array, dic的时候由于数据个数与指定的长度不一致造成崩溃。此时利用runtime 对异常情况进行捕捉，提前 return 或者抛弃多余的长度。  
 6.通过写这些对象的分类，在 `load` 中交换方法 处理按钮的重复点击方法交换。
 
+
+### RunLoop和屏幕点击事件传递链以及响应链关系
+
+
+在讲解RunLoop和屏幕点击事件传递链以及响应链关系之前，我们先来看一下下面这张图:
+
+<div align= center>
+<img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/runloop.jpg"/>
+</div>
 
 
