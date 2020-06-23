@@ -582,14 +582,14 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 
 通过上图，我们可以总结屏幕点击触发流程如下：
 
-1、手指点击屏幕，感应器获取到信号，在内部由 `IOKit.framework` 框架将点击电信号封装成IOHIDEvent事件  
-2、`springboard` 桌面操作系统接收事件，并通过 `mach port` 端口转发（PIC进程间通信）将 `IOHIDEvent` 事件传递给主线程处理  
-3、主线程 RunLoop 此时注册的`source1`(专门处理系统级事件)回调被触发，然后`source1`通过内部将信息转发给了`source0`处理(专门处理应用内事件)  
-4、然后事件被传递到UIApplication  
-5、通过UIApplication触发`sendEvent`事件转发消息，将消息扔给UIWindow  
-6、UIWindow通过调用 `hitTest:withEvent` 和 `pointInside:withEvent` 层层传递将事件传递给能够响应的控件  
-7、系统判断找到的控件是否能够响应该事件，如果能响应则走响应流程，如果不能响应则采用回溯方法，寻找能够响应该事件的控件  
-8、如果在回溯过程中找到能响应该事件的控件则进行响应，如果事件回溯到`UIApplication`还是没能找到响应该事件的控件，则直接丢弃事件  
+> 1、手指点击屏幕，感应器获取到信号，在内部由 `IOKit.framework` 框架将点击电信号封装成IOHIDEvent事件  
+> 2、`springboard` 桌面操作系统接收事件，并通过 `mach port` 端口转发（PIC进程间通信）将 `IOHIDEvent` 事件传递给主线程处理  
+> 3、主线程 RunLoop 此时注册的`source1`(专门处理系统级事件)回调被触发，然后`source1`通过内部将信息转发给了`source0`处理(专门处理应用内事件)  
+> 4、然后事件被传递到UIApplication  
+> 5、通过UIApplication触发`sendEvent`事件转发消息，将消息扔给UIWindow  
+> 6、UIWindow通过调用 `hitTest:withEvent` 和 `pointInside:withEvent` 层层传递将事件传递给能够响应的控件  
+> 7、系统判断找到的控件是否能够响应该事件，如果能响应则走响应流程，如果不能响应则采用回溯方法，寻找能够响应该事件的控件  
+> 8、如果在回溯过程中找到能响应该事件的控件则进行响应，如果事件回溯到`UIApplication`还是没能找到响应该事件的控件，则直接丢弃事件  
 
 
 在寻找能够响应该事件的控件过程中有两个方法被频繁的调用了:
