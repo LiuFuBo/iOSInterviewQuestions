@@ -577,7 +577,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 在讲解RunLoop和屏幕点击事件传递链以及响应链关系之前，我们先来看一下下面这张图:
 
 <div align= center>
-<img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/runloop.jpg"/>
+<img src = "https://github.com/LiuFuBo/iOSInterviewQuestions/raw/master/Imgs/runloop.png"/>
 </div>
 
 
