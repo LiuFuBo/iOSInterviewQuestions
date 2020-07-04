@@ -18,7 +18,8 @@
 12. [NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容-为何不会覆盖咱们自定义的属性)  
 13. [load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作-是否需要自动释放池)  
 14. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
-15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)  
+15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)   
+16. [浅谈iOS中weak的底层实现原理](#浅谈iOS中weak的底层实现原理)
 
 
 
@@ -373,4 +374,64 @@ view 已经消失或被覆盖，此时已经调用 removeFromSuperView。
 
 10.didReceiveMemoryWarning  
 在内存足够的情况下，app的视图通常会一直保存在内存中，但是如果内存不够，一些没有 正在显示的 viewController 就会收到内存不足的警告，然后就会释放自己拥有的视图，以达到释放内存的目的。但是系统只会释放内存，并不会释放对象的所有权，所以通常我们需要 在这里将不需要显示在内存中保留的对象释放它的所有权，将其指针置 nil。  
+
+
+### 浅谈iOS中weak的底层实现原理 
+
+使用场景：在iOS开发中经常会用到"weak"关键词，具体的使用场景就是用于一些对象互相引用的时候，为了避免造成循环引用。weak 关键字的为弱引用，所以引用对象的引用计数不会+1，并且在引用对象被释放的时候，会自动将引用对象设置为nil。  
+
+原理概括：苹果为了管理所有对象的计数器和weak指针，苹果创建了一个全局的哈希表，我们暂且叫它SideTables，里面装的是的名为SideTable的结构体。用对象的地址作为key，可以取出sideTable结构体，这个结构体用来管理引用计数和weak指针。
+
+下面是SideTables结构体:
+
+```
+struct weak_table_t {
+    weak_entry_t *weak_entries; // 保存了所有指向指定对象的weak指针数组
+    size_t    num_entries;              // weak对象的存储空间
+    uintptr_t mask;                      //参与判断引用计数辅助量
+    uintptr_t max_hash_displacement;    //hash key 最大偏移值
+};
+
+```
+
+
+ 例如:__weak NSObject *objc = [[NSObject alloc] init]; 根据上面weak表的结构可以看出，这里通过objc这个对象的地址作为key，然后再全局weak哈希表中获取到objc该对象下面维护的所有弱引用的对象的指针数组。也就是weak_entry_t。  
+
+ 那么为何value这里是一个数组呢？因为objc对象可能引用了多个weak关键字的属性  
+
+
+#### 具体步骤是怎么实现的呢？主要可以分为三步  
+
+> 1. 创建一个weak对象时，runtime会调用一个objc_initWeak函数，初始化一个新的weak指针指向该对象的地址  
+![image](http://mcenter.cocoachina.com/uploads/20171213/1513131184289942.png)
+
+> 2.在objc_initWeak函数中会继续调用objc_storeWeak函数，在这个过程是用来更新weak指针的指向，同时创建对应的弱引用表
+
+![image](http://cc.cocimg.com/api/uploads/20171213/1513131283935216.png)
+
+> 3.释放时，调用clearDeallocating函数。clearDeallocating函数首先根据对象地址获取所有weak指针地址的数组，然后遍历这个数组把其中的数据设为nil，最后把这个entry从weak表中删除，最后清理对象的记录。
+
+
+拓展：weak和__unsafe_unretained以及unowned 与 assign区别是什么?  
+
+>1.unsafe_unretained: 不会对对象进行retain,当对象销毁时,会依然指向之前的内存空间(野指针)。   
+
+>2.weak: 不会对对象进行retain,当对象销毁时,会自动指向nil。    
+
+>3.assign: 实质与__unsafe_unretained等同。    
+
+>4.unsafe_unretained也可以修饰代表简单数据类型的property，weak也不能修饰用来代表简单数据类型的property。  
+
+>5.unsafe_unretained 与 weak 比较，使用 weak是有代价的，因为通过上面的原理可知，weak需要检查对象是否已经消亡，而为了知道是否已经消亡，自然也需要一些信息去跟踪对象的使用情况。也正因此，unsafe_unretained 比weak快,所以当明确知道对象的生命期时，选择unsafe_unretained 会有一些性能提升，这种性能提升是很微小的。但当很清楚的情况下，unsafe_unretained 也是安全的，自然能快一点是一点。而当情况不确定的时候，应该优先选用weak。  
+
+>6.unowned使用在Swift中，也会分 weak 和 unowned。unowned 的含义跟 unsafe_unretained 差不多。假如很明确的知道对象的生命期，也可以选择unowned。  
+
+
+
+
+
+
+
+
+
 
