@@ -403,11 +403,11 @@ struct weak_table_t {
 #### 具体步骤是怎么实现的呢？主要可以分为三步  
 
 > 1. 创建一个weak对象时，runtime会调用一个objc_initWeak函数，初始化一个新的weak指针指向该对象的地址  
-![image](http://mcenter.cocoachina.com/uploads/20171213/1513131184289942.png)
+![image](http://brandonliu.pub/weak_init.png)
 
 > 2.在objc_initWeak函数中会继续调用objc_storeWeak函数，在这个过程是用来更新weak指针的指向，同时创建对应的弱引用表
 
-![image](http://cc.cocimg.com/api/uploads/20171213/1513131283935216.png)
+![image](http://brandonliu.pub/weak_store.png)
 
 > 3.释放时，调用clearDeallocating函数。clearDeallocating函数首先根据对象地址获取所有weak指针地址的数组，然后遍历这个数组把其中的数据设为nil，最后把这个entry从weak表中删除，最后清理对象的记录。
 
