@@ -8,7 +8,7 @@
 2. [NSArray 和 NSMutableArray使用Copy和MutableCopy有何不同?](#nsarray-和-nsmutablearray使用copy和mutablecopy有何不同)  
 3. [initialize 和 init 以及 load 调用时机?](#initialize-和-init-以及-load-调用时机)  
 4. [GCD 全称是啥?什么时候使用 GCD?](gcd-全称是啥-什么时候使用-gcd)  
-5. [NSURLSession 和 NSURLConnection 区别?](#nsurlsession-和-nsurlconnection-区别?)  
+5. [NSURLSession 和 NSURLConnection 区别?](#nsurlsession-和-nsurlconnection-区别)  
 6. [引用计数设计原理](#引用计数设计原理)  
 7. [Hash表扩容问题](#hash表扩容问题)  
 8. [深入了解+load方法的执行顺序](#深入了解+load方法的执行顺序)  
@@ -20,11 +20,14 @@
 14. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
 15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)   
 16. [浅谈iOS中weak的底层实现原理](#浅谈iOS中weak的底层实现原理)
-17. [多线程死锁原因？](#多线程死锁原因?)
-18. [单核处理器和多核处理器的区别?](#单核处理器和多核处理器的区别?)
+17. [多线程死锁原因？](#多线程死锁原因)
+18. [单核处理器和多核处理器的区别?](#单核处理器和多核处理器的区别)
 19. [KVO实现原理?如何自己实现KVO？](#KVO实现原理-如何自己实现KVO)
 20. [一个只读的属性 为什么不能实现KVO](#一个只读的属性-为什么不能实现KVO)
 21. [UIWebView和WKWebView的区别?](#UIWebView和WKWebView的区别?)
+22. [一张图片渲染到屏幕上经过了什么过程?](#一张图片渲染到屏幕上经过了什么过程)
+23. [离屏渲染是什么?什么场景会触发离屏渲染?都有什么具体的优化?](#离屏渲染是什么-什么场景会触发离屏渲染-都有什么具体的优化)
+24. [LRU算法原理？以及如何优化？](#LRU算法原理以及如何优化)
 
 
 
@@ -654,7 +657,7 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 #### 一个只读的属性 为什么不能实现KVO?
 
-因为readonly对象没有setter方法，isa指向的派生类NSKVONotifying_XXX，也是readonly的，所以没有setter方法
+>因为readonly对象没有setter方法，isa指向的派生类NSKVONotifying_XXX，也是readonly的，所以没有setter方法
 
 
 #### UIWebView和WKWebView的区别?
@@ -669,6 +672,184 @@ WKWebView的优劣势
 >6.可以和js直接互调函数，不像UIWebView需要第三方库WebViewJavascriptBridge来协助处理和js的交互。   
 >7.不支持页面缓存,需要自己注入cookie,而UIWebView是自动注入cookie。   
 >8.无法发送POST参数问题。
+
+
+#### 一张图片渲染到屏幕上经过了什么过程
+
+对应应用来说，图片是最占用手机内存的资源，将一张图片从磁盘中加载出来，并最终显示到屏幕上，中间其实经过了一系列复杂的处理过程。
+
+具体工作流程:
+
+>1、假设我们使用 +imageWithContentsOfFile: 方法从磁盘中加载一张图片，这个时候的图片并没有解压缩；
+>2、然后将生成的 UIImage 赋值给 UIImageView ；
+>3、接着一个隐式的 CATransaction（Transactions是CoreAnimation的用于将多个layer tree操作批量化为渲染树的原子更新的机制。 对layer tree的每个修改都需要事务作为其一部分） 捕获到了 UIImageView 图层树的变化；
+>4、在主线程的下一个 runloop 到来时，Core Animation 提交了这个隐式的 transaction ，这个过程可能会对图片进行 copy 操作，而受图片是否字节对齐等因素的影响，这个 copy 操作可能会涉及以下部分或全部步骤：
+>分配内存缓冲区用于管理文件 IO(输入/输出) 和解压缩操作；
+>将文件数据从磁盘读到内存中；
+>将压缩的图片数据解码成未压缩的位图形式，这是一个非常耗时的 CPU 操作；
+>最后 Core Animation 中CALayer使用未压缩的位图数据渲染 UIImageView 的图层。
+
+
+渲染流程:  
+
+>GPU获取获取图片的坐标
+>将坐标交给顶点着色器(顶点计算)
+>将图片光栅化(获取图片对应屏幕上的像素点)
+>片元着色器计算(计算每个像素点的最终显示的颜色值)
+>从帧缓存区中渲染到屏幕上
+>我们提到了图片的解压缩是一个非常耗时的 CPU操作，并且它默认是在主线程中执行的。那么当需要加载的图片比较多时，就会对我们应用的响应性造成严重的影响，尤其是在快速滑动的列表上，这个问题会表现得更加突出。
+
+为什么要解压缩图片?
+
+ 既然图片的解压缩需要消耗大量的 CPU 时间，那么我们为什么还要对图片进行解压缩呢？是否可以不经过解压缩，而直接将图片显示到屏幕上呢？答案是否定的。要想弄明白这个问题，我们首先需要知道什么是位图
+其实，位图就是一个像素数组，数组中的每个像素就代表着图片中的一个点。我们在应用中经常用到的 JPEG 和 PNG 图片就是位图
+
+例如:  
+
+```
+UIImage *image = [UIImage imageNamed:@"file.png"];
+CFDataRef rawData = CGDataProviderCopyData(CGImageGetDataProvider(image.CGImage));
+```
+
+打印rawData,这里就是图片的原始数据.
+事实上，不管是 JPEG 还是 PNG 图片，都是一种压缩的位图图形格式。只不过 PNG 图片是无损压缩，并且支持 alpha 通道，而 JPEG 图片则是有损压缩，可以指定 0-100% 的压缩比。值得一提的是，在苹果的 SDK 中专门提供了两个函数用来生成 PNG 和 JPEG 图片： 
+
+```
+// return image as PNG. May return nil if image has no CGImageRef or invalid bitmap format
+UIKIT_EXTERN NSData * __nullable UIImagePNGRepresentation(UIImage * __nonnull image);
+ 
+// return image as JPEG. May return nil if image has no CGImageRef or invalid bitmap format. compression is 0(most)..1(least)       
+UIKIT_EXTERN NSData * __nullable UIImageJPEGRepresentation(UIImage * __nonnull image, CGFloat compressionQuality);
+
+```
+
+因此，在将磁盘中的图片渲染到屏幕之前，必须先要得到图片的原始像素数据，才能执行后续的绘制操作，这就是为什么需要对图片解压缩的原因。
+
+
+解压缩原理
+
+既然图片的解压缩不可避免，而我们也不想让它在主线程执行，影响我们应用的响应性，那么是否有比较好的解决方案呢？
+我们前面已经提到了，当未解压缩的图片将要渲染到屏幕时，系统会在主线程对图片进行解压缩，而如果图片已经解压缩了，系统就不会再对图片进行解压缩。因此，也就有了业内的解决方案，在子线程提前对图片进行强制解压缩。
+而强制解压缩的原理就是对图片进行重新绘制，得到一张新的解压缩后的位图。其中，用到的最核心的函数是 CGBitmapContextCreate：  
+
+
+```
+CG_EXTERN CGContextRef __nullable CGBitmapContextCreate(void * __nullable data,
+ size_t width, size_t height, size_t bitsPerComponent, size_t bytesPerRow,
+ CGColorSpaceRef cg_nullable space, uint32_t bitmapInfo)
+ CG_AVAILABLE_STARTING(__MAC_10_0, __IPHONE_2_0);
+
+```
+
+>data ：如果不为 NULL ，那么它应该指向一块大小至少为 bytesPerRow * height 字节的内存；如果 为 NULL ，那么系统就会为我们自动分配和释放所需的内存，所以一般指定 NULL 即可；
+>width 和height ：位图的宽度和高度，分别赋值为图片的像素宽度和像素高度即可；
+>bitsPerComponent ：像素的每个颜色分量使用的 bit 数，在 RGB 颜色空间下指定 8 即可；
+>bytesPerRow ：位图的每一行使用的字节数，大小至少为 width * bytes per pixel 字节。当我们指定 0/NULL 时，系统不仅会为我们自动计算，而且还会进行 cache line alignment 的优化
+>space ：就是我们前面提到的颜色空间，一般使用 RGB 即可；
+>bitmapInfo ：位图的布局信息.kCGImageAlphaPremultipliedFirst
+
+
+总结  
+
+>1、图片文件只有在确认要显示时,CPU才会对齐进行解压缩.因为解压是非常消耗性能的事情.解压过的图片就不会重复解压,会缓存起来.
+>2、图片渲染到屏幕的过程:读取文件->计算Frame->图片解码->解码后纹理图片位图数据通过数据总线交给GPU->GPU获取图片Frame->顶点变换计算->光栅化->根据纹理坐标获取每个像素点的颜色值(如果出现透明值需要将每个像素点的颜色透明度值)->渲染到帧缓存区->渲染到屏幕。
+
+
+#### 离屏渲染是什么 什么场景会触发离屏渲染 都有什么具体的优化
+
+首先，什么是离屏渲染?
+
+离屏渲染就是在当前屏幕缓冲区以外，新开辟一个缓冲区进行操作。
+
+离屏渲染出发的场景有以下： 
+
+>1.圆角 （maskToBounds并用才会触发）
+>2.图层蒙版
+>3.阴影
+>4.光栅化
+
+
+为什么要避免离屏渲染？
+
+CPU GPU 在绘制渲染视图时做了大量的工作。离屏渲染发生在 GPU 层面上，会创建新的渲染缓冲区，会触发 OpenGL的多通道渲染管线，图形上下文的切换会造成额外的开销，增加 GPU 工作量。如果 CPU  GPU 累计耗时 16.67 毫秒还没有完成，就会造成卡顿掉帧。
+
+圆角属性、蒙层遮罩 都会触发离屏渲染。指定了以上属性，标记了它在新的图形上下文中，在未愈合之前，不可以用于显示的时候就出发了离屏渲染。
+
+在OpenGL中，GPU有2种渲染方式
+
+>On-Screen Rendering：当前屏幕渲染，在当前用于显示的屏幕缓冲区进行渲染操作  
+>Off-Screen Rendering：离屏渲染，在当前屏幕缓冲区以外新开辟一个缓冲区进行渲染操作  
+
+离屏渲染消耗性能的原因
+
+>需要创建新的缓冲区
+>离屏渲染的整个过程，需要多次切换上下文环境，先是从当前屏幕（On-Screen）切换到离屏（Off-Screen）；等到离屏渲染结束以后，将离屏缓冲区的渲染结果显示到屏幕上，又需要将上下文环境从离屏切换到当前屏幕。
+
+
+哪些操作会触发离屏渲染？
+
+>光栅化，layer.shouldRasterize = YES
+>遮罩，layer.mask
+>圆角，同时设置 layer.masksToBounds = YES、layer.cornerRadius大于0
+>考虑通过 CoreGraphics 绘制裁剪圆角，或者叫美工提供圆角图片阴影，layer.shadowXXX，如果设置了 layer.shadowPath 就不会产生离屏渲染
+
+
+什么是光栅化?
+
+光栅化是将一个图元转变为一个二维图像的过程。二维图像上每个点都包含了颜色、深度和纹理数据。将该点和相关信息叫做一个片元,光栅化的目的，是找出一个几何单元（比如三角形）所覆盖的像素。你模型的那些顶点在经过各种矩阵变换后也仅仅是顶点。而由顶点构成的三角形要在屏幕上显示出来，除了需要三个顶点的信息以外，还需要确定构成这个三角形的所有像素的信息。光栅化会根据三角形顶点的位置，来确定需要多少个像素点才能构成这个三角形，以及每个像素点都应该得到哪些信息.
+
+
+
+#### LRU算法原理以及如何优化?
+
+LRU设计原理
+
+LRU（Least recently used，最近最少使用）算法根据数据的历史访问记录来进行淘汰数据，其核心思想是“如果数据最近被访问过，那么将来被访问的几率也更高”。
+
+最常见的实现是使用一个链表保存缓存数据，详细算法实现如下：
+
+![image](http://brandonliu.pub/icon_blog_lru.png)  
+
+
+>1.新数据插入到链表头部；  
+>2.每当缓存命中（即缓存数据被访问），则将数据移到链表头部；  
+>3.当链表满的时候，将链表尾部的数据丢弃。  
+
+ 命中率  
+
+>当存在热点数据时，LRU的效率很好，但偶发性的、周期性的批量操作会导致LRU命中率急剧下降，缓存污染情况比较严重。
+ 复杂度  
+>实现简单。
+ 代价
+>命中时需要遍历链表，找到命中的数据块索引，然后需要将数据移到头部。
+
+
+LRU-K原理  
+
+LRU-K中的K代表最近使用的次数，因此LRU可以认为是LRU-1。LRU-K的主要目的是为了解决LRU算法“缓存污染”的问题，其核心思想是将“最近使用过1次”的判断标准扩展为“最近使用过K次”。
+
+相比LRU，LRU-K需要多维护一个队列，用于记录所有缓存数据被访问的历史。只有当数据的访问次数达到K次的时候，才将数据放入缓存。当需要淘汰数据时，LRU-K会淘汰第K次访问时间距当前时间最大的数据。详细实现如下：
+
+![image](http://brandonliu.pub/icon_blog_lruK.png)
+
+
+>1.数据第一次被访问，加入到访问历史列表；
+>2.如果数据在访问历史列表里后没有达到K次访问，则按照一定规则（FIFO，LRU）淘汰；
+>3.当访问历史队列中的数据访问次数达到K次后，将数据索引从历史队列删除，将数据移到缓存队列中，并缓存此数据，缓存队列重新按照时间排序；
+>4.缓存数据队列中被再次访问后，重新排序；
+>5.需要淘汰数据时，淘汰缓存队列中排在末尾的数据，即：淘汰“倒数第K次访问离现在最久”的数据。
+LRU-K具有LRU的优点，同时能够避免LRU的缺点，实际应用中LRU-2是综合各种因素后最优的选择，LRU-3或者更大的K值命中率会高，但适应性差，需要大量的数据访问才能将历史访问记录清除掉。
+ 命中率
+ >LRU-K降低了“缓存污染”带来的问题，命中率比LRU要高。
+ 复杂度
+>LRU-K队列是一个优先级队列，算法复杂度和代价比较高。
+ 代价
+>由于LRU-K还需要记录那些被访问过、但还没有放入缓存的对象，因此内存消耗会比LRU要多；当数据量很大的时候，内存消耗会比较可观。LRU-K需要基于时间进行排序（可以需要淘汰时再排序，也可以即时排序），CPU消耗比LRU要高。
+
+
+
+
+
 
 
 
