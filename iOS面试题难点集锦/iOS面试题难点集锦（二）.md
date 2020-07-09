@@ -20,6 +20,11 @@
 14. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
 15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)   
 16. [浅谈iOS中weak的底层实现原理](#浅谈iOS中weak的底层实现原理)
+17. [多线程死锁原因？](#多线程死锁原因?)
+18. [单核处理器和多核处理器的区别?](#单核处理器和多核处理器的区别?)
+19. [KVO实现原理?如何自己实现KVO？](#KVO实现原理-如何自己实现KVO)
+20. [一个只读的属性 为什么不能实现KVO](#一个只读的属性-为什么不能实现KVO)
+21. [UIWebView和WKWebView的区别?](#UIWebView和WKWebView的区别?)
 
 
 
@@ -427,6 +432,243 @@ struct weak_table_t {
 >6.unowned使用在Swift中，也会分 weak 和 unowned。unowned 的含义跟 unsafe_unretained 差不多。假如很明确的知道对象的生命期，也可以选择unowned。  
 
 
+#### 多线程死锁原因?  
+
+
+属于临界资源的硬件有打印机、磁带机等,软件有消息缓冲队列、变量、数组、缓冲区等。诸进程间应采取互斥方式，实现对这种资源的共享。    
+
+
+当我们在使用两个不同的线程访问同一个临界资源时就会出现如下情况：    
+![image](http://brandonliu.pub/icon_blog_jingzhengziyuan.png)    
+
+
+线程A优先被创建出来并优先去获得对临界资源的操作权限，线程A里有一个循环代码会循环对该临界资源进行操作，因此就会操作系统内核在进程里的线程之间调度时会出现这样一种情况：线程A在对该临界资源操作时，线程B呼唤操作系统取的CPU控制权时，会有一个线程调用之间的现场保护，会对线程里的代码执行到了哪一步或者循环次数的记录保存到寄存器里，下次获取CPU控制权时会读取该记录，此时如果线程A没有结束的情况下会一直占用着该临界资源，导致线程B无法对该临界资源做写操作，从而进入无限的阻塞等待，从而导致了死锁的情况！  
+
+如何避免死锁  
+
+在有些情况下死锁是可以避免的。三种用于避免死锁的技术：  
+
+> 1.加锁顺序（线程按照一定的顺序加锁）  
+> 2.加锁时限（线程尝试获取锁的时候加上一定的时限，超过时限则放弃对该锁的请求，并释放自己占有的锁）  
+> 2.死锁检测  
+
+加锁顺序  
+
+当多个线程需要相同的一些锁，但是按照不同的顺序加锁，死锁就很容易发生。  
+
+如果能确保所有的线程都是按照相同的顺序获得锁，那么死锁就不会发生。看下面这个例子：  
+
+```
+Thread 1:
+  lock A 
+  lock B
+
+Thread 2:
+   wait for A
+   lock C (when A locked)
+
+Thread 3:
+   wait for A
+   wait for B
+   wait for C
+
+```
+
+如果一个线程（比如线程3）需要一些锁，那么它必须按照确定的顺序获取锁。它只有获得了从顺序上排在前面的锁之后，才能获取后面的锁。
+
+例如，线程2和线程3只有在获取了锁A之后才能尝试获取锁C(译者注：获取锁A是获取锁C的必要条件)。因为线程1已经拥有了锁A，所以线程2和3需要一直等到锁A被释放。然后在它们尝试对B或C加锁之前，必须成功地对A加了锁。
+
+按照顺序加锁是一种有效的死锁预防机制。但是，这种方式需要你事先知道所有可能会用到的锁(译者注：并对这些锁做适当的排序)，但总有些时候是无法预知的。
+
+
+加锁时限  
+
+另外一个可以避免死锁的方法是在尝试获取锁的时候加一个超时时间，这也就意味着在尝试获取锁的过程中若超过了这个时限该线程则放弃对该锁请求。若一个线程没有在给定的时限内成功获得所有需要的锁，则会进行回退并释放所有已经获得的锁，然后等待一段随机的时间再重试。这段随机的等待时间让其它线程有机会尝试获取相同的这些锁，并且让该应用在没有获得锁的时候可以继续运行(译者注：加锁超时后可以先继续运行干点其它事情，再回头来重复之前加锁的逻辑)。  
+
+以下是一个例子，展示了两个线程以不同的顺序尝试获取相同的两个锁，在发生超时后回退并重试的场景：  
+
+```
+Thread 1 locks A
+Thread 2 locks B
+
+Thread 1 attempts to lock B but is blocked
+Thread 2 attempts to lock A but is blocked
+
+Thread 1's lock attempt on B times out
+Thread 1 backs up and releases A as well
+Thread 1 waits randomly (e.g. 257 millis) before retrying.
+
+Thread 2's lock attempt on A times out
+Thread 2 backs up and releases B as well
+Thread 2 waits randomly (e.g. 43 millis) before retrying.
+
+```
+
+在上面的例子中，线程2比线程1早200毫秒进行重试加锁，因此它可以先成功地获取到两个锁。这时，线程1尝试获取锁A并且处于等待状态。当线程2结束时，线程1也可以顺利的获得这两个锁（除非线程2或者其它线程在线程1成功获得两个锁之前又获得其中的一些锁。  
+
+需要注意的是，由于存在锁的超时，所以我们不能认为这种场景就一定是出现了死锁。也可能是因为获得了锁的线程（导致其它线程超时）需要很长的时间去完成它的任务。  
+
+此外，如果有非常多的线程同一时间去竞争同一批资源，就算有超时和回退机制，还是可能会导致这些线程重复地尝试但却始终得不到锁。如果只有两个线程，并且重试的超时时间设定为0到500毫秒之间，这种现象可能不会发生，但是如果是10个或20个线程情况就不同了。因为这些线程等待相等的重试时间的概率就高的多（或者非常接近以至于会出现问题）。  
+(译者注：超时和重试机制是为了避免在同一时间出现的竞争，但是当线程很多时，其中两个或多个线程的超时时间一样或者接近的可能性就会很大，因此就算出现竞争而导致超时后，由于超时时间一样，它们又会同时开始重试，导致新一轮的竞争，带来了新的问题。)  
+
+这种机制存在一个问题，在Java中不能对synchronized同步块设置超时时间。你需要创建一个自定义锁，或使用Java5中java.util.concurrent包下的工具。写一个自定义锁类不复杂，但超出了本文的内容。后续的Java并发系列会涵盖自定义锁的内容。  
+
+死锁检测  
+
+死锁检测是一个更好的死锁预防机制，它主要是针对那些不可能实现按序加锁并且锁超时也不可行的场景。  
+
+每当一个线程获得了锁，会在线程和锁相关的数据结构中（map、graph等等）将其记下。除此之外，每当有线程请求锁，也需要记录在这个数据结构中。  
+
+当一个线程请求锁失败时，这个线程可以遍历锁的关系图看看是否有死锁发生。例如，线程A请求锁7，但是锁7这个时候被线程B持有，这时线程A就可以检查一下线程B是否已经请求了线程A当前所持有的锁。如果线程B确实有这样的请求，那么就是发生了死锁（线程A拥有锁1，请求锁7；线程B拥有锁7，请求锁1）。  
+
+当然，死锁一般要比两个线程互相持有对方的锁这种情况要复杂的多。线程A等待线程B，线程B等待线程C，线程C等待线程D，线程D又在等待线程A。线程A为了检测死锁，它需要递进地检测所有被B请求的锁。从线程B所请求的锁开始，线程A找到了线程C，然后又找到了线程D，发现线程D请求的锁被线程A自己持有着。这是它就知道发生了死锁。  
+
+
+那么当检测出死锁时，这些线程该做些什么呢？  
+
+一个可行的做法是释放所有锁，回退，并且等待一段随机的时间后重试。这个和简单的加锁超时类似，不一样的是只有死锁已经发生了才回退，而不会是因为加锁的请求超时了。虽然有回退和等待，但是如果有大量的线程竞争同一批锁，它们还是会重复地死锁（编者注：原因同超时类似，不能从根本上减轻竞争）。  
+
+一个更好的方案是给这些线程设置优先级，让一个（或几个）线程回退，剩下的线程就像没发生死锁一样继续保持着它们需要的锁。如果赋予这些线程的优先级是固定不变的，同一批线程总是会拥有更高的优先级。为避免这个问题，可以在死锁发生的时候设置随机的优先级。  
+
+
+
+#### 单核处理器和多核处理器的区别?
+
+单核cpu并不是一个长久以来存在的概念，在近年来多核心处理器逐步普及之后，单核心的处理器为了与双核和四核对应而提出。多核是指一个CPU有多个核心处理器，处理器之间通过CPU内部总线进行通讯,而多CPU是指简单的多个CPU工作在同一个系统上，多个CPU之间的通讯是通过主板上的总线进行的。
+
+
+#### KVO实现原理 如何自己实现KVO?
+
+实现原理
+
+KVO是通过isa-swizzling技术实现的(这句话是整个KVO实现的重点)。在运行时根据原类创建一个中间类，这个中间类是原类的子类，并动态修改当前对象的isa指向中间类。并且将class方法重写，返回原类的Class。所以苹果建议在开发中不应该依赖isa指针，而是通过class实例方法来获取对象类型。
+
+
+自定义KVO
+
+创建一个分类新增一个方法addObserver，在方法中创建子类注册并指向子类，再为子类添加set方法既可。
+
+主要使用函数如下:  
+
+ >1.创建一个子类    
+
+```
+ objc_allocateClassPair(Class _Nullable superclass, const char * _Nonnull name,
+ size_t extraBytes)
+ superclass:设置新类的父类
+ name:新类名称
+ extraBytes:额外字节数设置为0
+
+```
+
+>2.注册该类  
+
+```
+objc_registerClassPair(Class _Nonnull cls)
+ cls:当前要注册的类，注册后才可以使用
+
+```
+
+>3.设置当前对象指向其他类
+
+```
+ object_setClass(id _Nullable obj, Class _Nonnull cls)
+ obj:要设置的对象
+ cls:指向的类
+```
+
+>4.动态添加一个方法
+
+```
+ class_addMethod(Class _Nullable cls, SEL _Nonnull name, IMP _Nonnull imp,
+ const char * _Nullable types)
+ cls:设置添加方法对应的类
+ name:选择子（选择器）名称，描述了方法的格式，并不会指向方法
+ imp:函数名称（函数指针），和选择子一一对应，指向方法实现的地址
+
+```
+
+>5.通过分类添加新的观察者添加方法
+
+```
+-(void)addObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath options:(NSKeyValueObservingOptions)options context:(void *)context{
+    NSString *oldName = NSStringFromClass(self.class);
+    NSString *newName = [@"HBKVO_" stringByAppendingString:oldName];
+    //1、创建一个子类
+    Class newClass = objc_allocateClassPair(self.class, newName.UTF8String, 0);
+    //2、注册该类
+    objc_registerClassPair(newClass);
+    //3、指向子类
+    object_setClass(self, newClass);
+    //4、动态添加一个方法
+    NSString *first = [keyPath substringWithRange:NSMakeRange(0, 1)];
+    NSString *other = [keyPath substringFromIndex:1];
+    NSString *setName = [NSString stringWithFormat:@"set%@%@:",first.uppercaseString,other];//设置一个属性名首字母大写的方法
+    Method method = class_getInstanceMethod(self.class, sel_registerName(setName.UTF8String));
+    const char *types = method_getTypeEncoding(method);
+    class_addMethod(newClass, sel_registerName(setName.UTF8String), (IMP)setValue, types);
+    //class_addMethod(newClass, sel_registerName(setMethod.UTF8String), (IMP)setName, "v@:@");
+    
+    //设置关联数据
+    //获取元类旧值使用
+    objc_setAssociatedObject(self, "keyPath", keyPath, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    //设置新值的时候使用
+    objc_setAssociatedObject(self, "setName", setName, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    //通知值变化
+    objc_setAssociatedObject(self, "observer", observer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    //传进来的内容需要回传
+    objc_setAssociatedObject(self, "context", (__bridge id _Nullable)(context), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+```
+
+>6.设置属性值的新调用方法
+
+```
+void setValue(id self,SEL _cmd,NSString *newValue){
+    NSLog(@"newValue:%@",newValue);
+    NSString *keyPath = objc_getAssociatedObject(self, "keyPath");
+    NSString *setName = objc_getAssociatedObject(self, "setName");
+    id observer = objc_getAssociatedObject(self, "observer");
+    id context = objc_getAssociatedObject(self, "context");
+    //存储新类
+    Class newClass = [self class];
+    //指向父类获取旧值
+    object_setClass(self, class_getSuperclass(newClass));
+    NSString *oldValue = objc_msgSend(self,sel_registerName(keyPath.UTF8String));
+    //对原始类属性或成员变量复制
+    objc_msgSend(self, sel_registerName(setName.UTF8String),newValue);
+    NSMutableDictionary *change = [NSMutableDictionary dictionary];
+    if (oldValue) {
+        change[NSKeyValueChangeOldKey] = oldValue;
+    }
+    if (newValue) {
+        change[NSKeyValueChangeNewKey] = newValue;
+    }
+    //调用observer的回调方法
+    objc_msgSend(observer, @selector(observeValueForKeyPath:ofObject:change:context:),keyPath,observer,change,context);
+    //操作完成后指回动态创建的新类
+    object_setClass(self, newClass);
+}
+
+```
+
+#### 一个只读的属性 为什么不能实现KVO?
+
+因为readonly对象没有setter方法，isa指向的派生类NSKVONotifying_XXX，也是readonly的，所以没有setter方法
+
+
+#### UIWebView和WKWebView的区别?
+
+WKWebView的优劣势   
+
+>1.内存占用是UIWebView的20%-30%;   
+>2.页面加载速度有提升，有的文章说它的加载速度比UIWebView提升了一倍左右。   
+>3.更为细致地拆分了 UIWebViewDelegate 中的方法   
+>4.自带进度条。不需要像UIWebView一样自己做假进度条（通过NJKWebViewProgress和双层代理技术实现），技术复杂度和代码量，根贴近实际加载进度优化好的多。   
+>5.允许JavaScript的Nitro库加载并使用（UIWebView中限制）   
+>6.可以和js直接互调函数，不像UIWebView需要第三方库WebViewJavascriptBridge来协助处理和js的交互。   
+>7.不支持页面缓存,需要自己注入cookie,而UIWebView是自动注入cookie。   
+>8.无法发送POST参数问题。
 
 
 
