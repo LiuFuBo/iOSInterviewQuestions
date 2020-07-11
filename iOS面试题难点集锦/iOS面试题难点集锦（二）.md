@@ -28,6 +28,8 @@
 22. [一张图片渲染到屏幕上经过了什么过程?](#一张图片渲染到屏幕上经过了什么过程)
 23. [离屏渲染是什么?什么场景会触发离屏渲染?都有什么具体的优化?](#离屏渲染是什么-什么场景会触发离屏渲染-都有什么具体的优化)
 24. [LRU算法原理？以及如何优化？](#LRU算法原理以及如何优化)
+25. [NSMutableArray是线程安全的么？如何创建线程安全的NSMutableArray?](#NSMutableArray是线程安全的么-如何创建线程安全的NSMutableArray)
+26. [UITableView性能优化汇总](#UITableView性能优化汇总)
 
 
 
@@ -838,22 +840,177 @@ LRU-K中的K代表最近使用的次数，因此LRU可以认为是LRU-1。LRU-K�
 >3.当访问历史队列中的数据访问次数达到K次后，将数据索引从历史队列删除，将数据移到缓存队列中，并缓存此数据，缓存队列重新按照时间排序；  
 >4.缓存数据队列中被再次访问后，重新排序；  
 >5.需要淘汰数据时，淘汰缓存队列中排在末尾的数据，即：淘汰“倒数第K次访问离现在最久”的数据。  
-LRU-K具有LRU的优点，同时能够避免LRU的缺点，实际应用中LRU-2是综合各种因素后最优的选择，LRU-3或者更大的K值命中率会高，但适应性差，需要大量的数据访问才能将历史访问记录清除掉。  
+LRU-K具有LRU的优点，同时能够避免LRU的缺点，实际应用中LRU-2是综合各种因素后最优的选择，LRU-3或者更大的K值命中率会高，但适应性差，需要大量的数据访问才能将历史访问记录清除掉。    
+
+
  命中率  
- >LRU-K降低了“缓存污染”带来的问题，命中率比LRU要高。  
+ >LRU-K降低了“缓存污染”带来的问题，命中率比LRU要高。    
+
+
  复杂度  
 >LRU-K队列是一个优先级队列，算法复杂度和代价比较高。  
+
+
  代价  
 >由于LRU-K还需要记录那些被访问过、但还没有放入缓存的对象，因此内存消耗会比LRU要多；当数据量很大的时候，内存消耗会比较可观。LRU-K需要基于时间进行排序（可以需要淘汰时再排序，也可以即时排序），CPU消耗比LRU要高。  
 
 
 
+#### NSMutableArray是线程安全的么 如何创建线程安全的NSMutableArray
+
+>首先,NSMutableArray是线程不安全的，当有多个线程同时对数组进行操作的时候可能导致崩溃或数据错误
+
+>对数组的读写都加锁，虽然数组是线程安全了，但失去了多线程的优势
+
+> 然后又想可以只对写操作加锁然后定义一个全局变量来表示现在有没有写操作，如果有写操作就等写完了在读，那么问题来了如果一个线程先读取数据紧接着一个线程对数组写的操作，读的时候还没有加锁同样会导致崩溃或数据错误，这个方案pass掉.
+
+>第三种方案说之前先介绍一下dispatch_barrier_async，dispatch_barrier_async 追加到 queue 中后，会等待 queue 中的任务都结束后，再执行 dispatch_barrier_async 的任务，等 dispatch_barrier_async 的任务结束后，才恢复任务执行， 用dispatch_async和dispatch_barrier_async结合保证NSMutableArray的线程安全，用dispatch_async读和dispatch_barrier_async写（add,remove,replace），当有任务在读的时候写操作会等到所有的读操作都结束了才会写，同样当有写任务时，读任务会等写操作完了才会读，既保证了线程安全又发挥了多线程的优势，但还是有个不足，当我们重写读的方法时dispatch_async是另开辟线程去执行的而且是立马返回的，所以我们不能拿到执行结果，需要去另写一个方法来返回读的结果，但是我们又不想改变调用者的习惯于是又想到了一下方案
+
+>用dispatch_sync和dispatch_barrier_async结合保证NSMutableArray的线程安全，dispatch_sync是在当前线程上执行不会另开辟新的线程，当线程返回的时候就可以拿到读取的结果，我认为这个方案是最完美的选择，既保证的线程安全有发挥了多线程的优势还不用另写方法返回结果.  
 
 
 
+#### UITableView性能优化汇总
+
+一、Cell重用
+
+优化数据源方法:
+
+```
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
+
+```
+
+在可⻅的⻚⾯会重复绘制⻚⾯，每次刷新显示都会去创建新的Cell，非常耗费性能。
+
+解决方案:  创建⼀个静态变量reuseID(代理方法返回Cell会调⽤用很多次，防⽌重复创建，static保证只会被创建⼀次，提⾼性能)，然后，从缓存池中取相应 identifier的Cell并更新数据，如果没有，才开始alloc新的Cell，并用identifier标识 Cell。每个Cell都会注册⼀个identifier(重用标识符)放⼊入缓存池，当需要调⽤的时候就直接从缓存池里找对应的id，当不需要时就放入缓存池等待调⽤。(移出屏幕的 Cell才会放⼊入缓存池中，并不不会被release)
+
+优化方案如下:
+
+```
+static NSString *reuseID = “reuseCellID”;
+// 缓存池中取已经创建的cell
+UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseID];
+
+```
+
+缓存池内部原理:
+
+当Cell要alloc时，UITableView会在堆中开辟⼀一段内存以供Cell缓存之⽤用。Cell的重 ⽤用通过identifier标识不同类型的Cell，由此可以推断出，缓存池外层可能是⼀个可变字典，通过key来取出内部的Cell，⽽而缓存池为存储不同高度、不同类型(包含图片、 Label等)的Cell，可以推断出缓存池的字典内部可能是一个可变数组，用来存放不不同 类型的Cell，缓存池中只会保存已经被移出屏幕的不同类型的Cell。
 
 
+缓存池获取可重用Cell的两个方法区别
 
+```
+-(nullable __kindof UITableViewCell *)dequeueReusableCellWithIdentifier: (NSString *)identifier;
+这个⽅法会查询可重⽤用Cell，如果注册了原型Cell，能够查询到，否则，返回nil;⽽且需要判断if(cell == nil)，才会创建Cell，不推荐
+-(__kindof UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier forIndexPath:(NSIndexPath *)indexPath NS_AVAILABLE_IOS(6_0);
+使⽤这个⽅法之前，必须通过xib(storyboard)或是Class(纯代码)注册可重⽤用 Cell，⽽而且这个方法⼀定会返回一个Cell
+//注册Cell
+- (void)registerNib:(nullable UINib *)nib forCellReuseIdentifier:(NSString
+*)identifier NS_AVAILABLE_IOS(5_0);
+- (void)registerClass:(nullable Class)cellClass forCellReuseIdentifier:(NSString *)identifier NS_AVAILABLE_IOS(6_0);
+
+```
+
+二、在同一个UITableView中尽量少定义Cell类型，并且需要善用hidden隐藏或者显示subviews    
+
+
+尽量少的定义Cell类型    
+
+分析Cell结构，尽可能的将 相同内容的抽取到⼀种样式Cell中，前⾯面已经提到了了Cell的重⽤机制，这样就能保证UITbaleView要显示多少内容，真正创建出的Cell可能   只比屏幕显示的Cell多⼀点。虽然Cell的’体积’可能会大点，但是因为Cell的数量量不会很多，完全可以接受的。    
+
+好处:
+>减少代码量量，减少Nib⽂件的数量，统⼀一个Nib⽂文件定义Cell，容易修改、维护。  
+>基于Cell的重⽤用，真正运⾏时铺满屏幕所需的Cell数量⼤致是固定的，设为N个。所以如果如果只有一种Cell，那就是只有N个Cell的实例;但是如果有M种Cell，那么运行时最多可能会是“M x N = MN”个Cell的实例例，虽然可能并不会占⽤用太多内存，但是能少点不是更好吗。  
+
+
+善用hidden隐藏或显示subviews
+
+只定义⼀种Cell，那该如何显示不同类型的内容呢?答案就是，把所有不同类型的view都定义好，放在cell⾥⾯，通过hidden显示、隐藏，来显示不同类型的内容。毕竟，在⽤户快速滑动中，只是单纯的显示、隐藏subview比实时创建要快得多。  
+
+
+三、提前计算并缓存Cell的⾼高度
+
+在iOS中，不设UITableViewCell的预估行高的情况下，会优先调用 ”tableView:heightForRowAtIndexPath:”⽅法，获取每个Cell的即将显示的高度， 从而确定UITableView的布局，实际就是要获取contentSize(UITableView继承⾃UIScrollView,只有获取滚动区域，才能实现滚动),然后才调用”tableView:cellForRowAtIndexPath”,获取每个Cell，进⾏赋值。如果项⽬中模块有 10000个Cell需要显示，可想⽽知.  
+
+
+解决方案如下:
+
+可以将计算Cell的⾼高度放⼊入数据模型，但这与MVC设计模式可能稍微有点冲突，这个时候我就想到MVVM这种设计模式，这个时候才能稍微有点MVVM这种设计模式的优点，可 以讲计算Cell⾼高度放入ViewModel(视图模型)中，让Model(数据模型)只负责处理数据。  
+
+
+四、异步绘制(自定义Cell绘制)
+
+遇到⽐较复杂的界⾯面的时候，如复杂点的图文混排采用异步绘制Cell
+
+
+五、滑动时，按需加载
+
+开发的过程中自定义Cell的种类千奇百怪，但Cell本来就是⽤来显示数据的，不说100%带有图片，也差不多，这个时候就要考虑，下滑的过程中可能会有点卡顿，尤其网络不好的时候，异步加载图片是个程序员都会想到，但是如果给每个循环对象都加上异步加载，开启的线程太多，⼀样会卡顿，我记得好像线程条数⼀般3-5条，最多也就6条吧。
+
+解决方案:
+
+cell每次被渲染时，判断当前tableView是否处于滚动状态，是的话，不加载图片,cell 滚动结束的时候，获取当前界面内可见的所有cell.
+```
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell"];
+    if (!cell) {
+        cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"cell"];
+    }
+    
+    DemoModel *model = self.datas[indexPath.row];
+    cell.textLabel.text = model.text;
+   
+    //不在直接让cell.imageView loadYYWebImage
+    if (model.iconImage) {
+        cell.imageView.image = model.iconImage;
+    }else{
+       cell.imageView.image = [UIImage imageNamed:@"placeholder"];
+        /**
+         runloop - 滚动时候 - trackingMode，
+         - 默认情况 - defaultRunLoopMode
+         ==> 滚动的时候，进入`trackingMode`，defaultMode下的任务会暂停
+         停止滚动的时候 - 进入`defaultMode` - 继续执行`trackingMode`下的任务 - 例如这里的loadImage
+         */
+        [self performSelector:@selector(p_loadImgeWithIndexPath:)
+                   withObject:indexPath
+                   afterDelay:0.0
+                      inModes:@[NSDefaultRunLoopMode]];
+      }
+}
+
+//下载图片，并渲染到cell上显示
+- (void)p_loadImgeWithIndexPath:(NSIndexPath *)indexPath{
+    
+    DemoModel *model = self.datas[indexPath.row];
+    UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:indexPath];
+    
+    [ImageDownload loadImageWithModel:model success:^{
+        //主线程刷新UI
+        dispatch_async(dispatch_get_main_queue(), ^{
+            cell.imageView.image = model.iconImage;
+        });
+    }];
+}
+
+```
+
+六、避免⼤量的图片缩放、颜⾊渐变等，尽量显示“大⼩刚好合适的图片资源
+
+七、避免同步的从网络、文件获取数据，Cell内实现的内容来自web，使用异步加载，缓存请求结果
+
+
+八、减少渲染复杂度
+
+解决方案如下:
+
+>减少subviews的个数和层级,子控件的层级越深，渲染到屏幕上所需要的计算量量就越大;如多用drawRect绘制元素，替代⽤view显示.  
+
+>少⽤用subviews的半透明图层,不透明的View，设置opaque为YES，这样在绘制该View时，就不需要考虑被View覆盖的其他内容(尽量设置Cell的view为opaque，避免GPU对Cell下⾯的内容 也进行绘制)
+
+>避免CALayer特效(shadowPath) 给Cell中View加阴影会引起性能问题，如下面代码会导致滚动时有明显的卡顿:
 
 
 
