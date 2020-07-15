@@ -856,6 +856,132 @@ LRU-K具有LRU的优点，同时能够避免LRU的缺点，实际应用中LRU-2�
 >由于LRU-K还需要记录那些被访问过、但还没有放入缓存的对象，因此内存消耗会比LRU要多；当数据量很大的时候，内存消耗会比较可观。LRU-K需要基于时间进行排序（可以需要淘汰时再排序，也可以即时排序），CPU消耗比LRU要高。  
 
 
+关于 `NSDictionary + 双向链表 `  实现LRU缓存淘汰算法方案  
+
+
+度过YYCache的同学应该知道YYCache内部对于内存缓存部分就是采用 `NSDictionary + 双向链表` 来实现的，具体的实现思路如下:  
+
+
+设计思路:  
+
+
+使用 `NSDictionary` 存储 `key`，这样可以做到 Save 和 Get key的时间都是 O(1)，而 NSDictionary 的 Value 指向双向链表实现的 `LRU` 的 `Node` 节点，利用空间hash_map的空间换来快速如图所示的访问；  
+
+![image](http://brandonliu.pub/icon_blog_dic_lru.png)
+
+
+LRU 存储是基于双向链表实现的。其中 `head` 代表双向链表的表头，`tail` 代表尾部。首先预先设置 LRU 的容量，如果存储满了，可以通过 O(1) 的时间淘汰掉双向链表的尾部，每次新增和访问数据，都可以通过 O(1)的效率把新的节点增加到对头，或者把已经存在的节点移动到队头。
+
+关于存取实现细节如下:
+
+>1.存储数据，首先在NSDictionary找到Key对应的节点，如果节点存在，更新节点的值，并把这个节点移动队头。如果不存在，需要构造新的节点，并且尝试把节点塞到队头，如果LRU空间不足，则通过 tail 淘汰掉队尾的节点，同时在 HashMap 中移除 Key。  
+
+>2.获取数据,通过 NSDictionary 找到 LRU 链表节点，因为根据LRU 原理，这个节点是最新访问的，所以要把节点插入到队头，然后返回缓存的值。
+
+demo样例:
+
+```
+
+struct DlinkdNode {
+	int  key;
+	int val;
+	DlinkdNode* pre;
+	DlinkdNode* next;
+ 
+};
+
+class LRUCache {
+private:
+	unordered_map<int, DlinkdNode*>cache;
+	int capacity;
+	int size;
+	DlinkdNode*head;
+	DlinkdNode*tail;
+ 
+    //链表中添加节点
+	void addNode(DlinkdNode* node)
+	{
+		node->pre = head;
+		node->next = head->next;
+		head->next->pre = node;
+		head->next = node;
+	}
+    //链表中删除节点
+	void remove(DlinkdNode*node)
+	{
+		node->pre->next = node->next;
+		node->next->pre = node->pre;
+		//delete node;此处不能删除，节点的删除交给hash_map进行，否则后序hash_map无法访问此节点
+	}
+   //链表中将节点调制头结点，数据变为最热的数据
+	void moveTohead(DlinkdNode*node)
+	{
+		this->remove(node);
+		this->addNode(node);
+	}
+ 
+	//删除链表尾节点
+	DlinkdNode* popTail()
+	{
+		DlinkdNode*res = tail->pre;
+		this->remove(res);
+		return res;
+	}
+ 
+ 
+public:
+	LRUCache(int capacity) {
+		size = 0;
+		this->capacity = capacity;
+ 
+		head = new DlinkdNode();
+		head->pre = nullptr;
+ 
+		tail = new DlinkdNode();
+		tail->next = nullptr;
+ 
+		head->next = tail;
+		tail->pre = head;
+	}
+ 
+	int get(int key) {
+		unordered_map<int, DlinkdNode*>::iterator it = cache.find(key);
+		if (it == cache.end())
+			return -1;
+		else {
+			moveTohead(it->second);
+			return it->second->val;
+		}
+	}
+ 
+ 
+	void put(int key, int value) {
+		unordered_map<int, DlinkdNode*>::iterator it = cache.find(key);
+		if (it == cache.end()) {
+			DlinkdNode*Node = new DlinkdNode();
+			Node->key = key;
+			Node->val = value;
+			this->cache.insert({ key,Node });
+			addNode(Node);
+ 
+			++size;
+			if (size > capacity)//超出容量将尾部最冷数据删除
+			{
+				DlinkdNode* TailNode = popTail();
+				cache.erase(TailNode->key);
+				--size;
+			}
+		}
+		else {
+			it->second->val = value;//更新缓存key对应的val,并移动到链表头，最热
+			moveTohead(it->second);
+	}
+ 
+}
+};
+
+```
+
 
 #### NSMutableArray是线程安全的么 如何创建线程安全的NSMutableArray
 
