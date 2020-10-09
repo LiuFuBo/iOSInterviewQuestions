@@ -1,6 +1,6 @@
 ## iOS面试题难点集锦（二）---参考答案
 
-引言：通过上篇文章[iOS面试题难点集锦（二）](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（二）.md)，我们了解了一些面试散碎面试知识点，接下来的篇幅我们会着重讲解一些体系内文章。
+引言：通过上篇文章[iOS面试题难点集锦（二）](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/iOS面试题难点集锦/iOS面试题难点集锦（二）.md)，我们了解了一些散碎的iOS知识点，接下来的篇幅我们会着重讲解一些体系内文章。
 
 # 索引
 
