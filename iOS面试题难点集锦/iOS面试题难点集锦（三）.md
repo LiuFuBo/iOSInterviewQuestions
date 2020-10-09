@@ -23,7 +23,7 @@ HTTP协议是Hyper Text Transfer Protocol（超文本传输协议）的缩写，
 
 #### HTTP工作原理图  
 
-![](https://www.notion.so/HTTP-36794b34cc234499849cf7dd3f16660b#e216382c7d96471d90c24cfafe75fa8b)  
+![](http://brandonliu.pub/icon_blog_wanweiwang_http.jpg)  
 
 
 
@@ -228,7 +228,7 @@ HTTP/2.0复用TCP连接，在一个连接里，客户端和服务端都可以同
 #### 握手流程图：  
 
 
-![](https://www.notion.so/HTTP-36794b34cc234499849cf7dd3f16660b#8fbd5f62dcde48248f4198f20c643411) 
+![](http://brandonliu.pub/icon_blog_woshou_http.jpeg) 
 
 
 
@@ -352,7 +352,7 @@ HTTP/2.0复用TCP连接，在一个连接里，客户端和服务端都可以同
 #### 原理图：  
 
 
-![](https://www.notion.so/HTTP-36794b34cc234499849cf7dd3f16660b#36ddbe01b983492580a0ce5ea766ec93)
+![](http://brandonliu.pub/icon_blog_gongji_http.jpeg)
 
 
 
