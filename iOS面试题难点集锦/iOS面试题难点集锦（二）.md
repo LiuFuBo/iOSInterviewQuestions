@@ -143,7 +143,7 @@ NSURLSession 针对下载/上传等复杂的网络操作提供了专门的解决
 
 3.下载任务  
 
-NSURLConnection 下载文件时，先将整个文件下载到内存，然后再写入沙盒，如果文件比较 大，就会出现内存暴涨的情况。而使用 NSURLSessionUploadTask 下载文件，会默认下载到沙 盒中的 tem 文件夹中，不会出现内存暴涨的情况，但在下载完成后会将 tem 中的临时文件 删除，需要在初始化任务方法时，在 completionHandler 回调中增加保存文件的代码。  
+NSURLConnection 下载文件时，先将整个文件下载到内存，然后再写入沙盒，如果文件比较 大，就会出现内存暴涨的情况。而使用 NSURLSessionDownloadTask 下载文件，会默认下载到沙 盒中的 tem 文件夹中，不会出现内存暴涨的情况，但在下载完成后会将 tem 中的临时文件 删除，需要在初始化任务方法时，在 completionHandler 回调中增加保存文件的代码。  
 
 4.配置信息
 
