@@ -559,7 +559,7 @@ Thread 2 waits randomly (e.g. 43 millis) before retrying.
 
 实现原理
 
-KVO是通过isa-swizzling技术实现的(这句话是整个KVO实现的重点)。在运行时根据原类创建一个中间类，这个中间类是原类的子类，并动态修改当前对象的isa指向中间类。并且将class方法重写，返回原类的Class。所以苹果建议在开发中不应该依赖isa指针，而是通过class实例方法来获取对象类型。
+KVO是通过isa-swizzling技术实现的(这句话是整个KVO实现的重点)。在运行时根据原类创建一个中间类，这个中间类是原类的子类，并动态修改当前对象的isa指向中间类。并且将class方法重写，返回原类的Class。所以苹果建议在开发中不应该依赖isa指针，而是通过class实例方法来获取对象类型。[具体实现，请参考demo](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/demo/自定义KVO)
 
 
 自定义KVO
