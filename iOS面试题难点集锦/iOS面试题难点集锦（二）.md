@@ -23,16 +23,17 @@
 17. [多线程死锁原因？](#多线程死锁原因)
 18. [单核处理器和多核处理器的区别?](#单核处理器和多核处理器的区别)
 19. [KVO实现原理?如何自己实现KVO？](#KVO实现原理-如何自己实现KVO)
-20. [一个只读的属性 为什么不能实现KVO](#一个只读的属性-为什么不能实现KVO)
-21. [UIWebView和WKWebView的区别?](#UIWebView和WKWebView的区别?)
-22. [一张图片渲染到屏幕上经过了什么过程?](#一张图片渲染到屏幕上经过了什么过程)
-23. [离屏渲染是什么?什么场景会触发离屏渲染?都有什么具体的优化?](#离屏渲染是什么-什么场景会触发离屏渲染-都有什么具体的优化)
-24. [LRU算法原理？以及如何优化？](#LRU算法原理以及如何优化)
-25. [NSMutableArray是线程安全的么？如何创建线程安全的NSMutableArray?](#NSMutableArray是线程安全的么-如何创建线程安全的NSMutableArray)
-26. [UITableView性能优化汇总](#UITableView性能优化汇总)
-27. [有两个视图A/B,A有一部分内容覆盖在B上面，如果点击A让B视图响应？](#有两个视图A/B-A有一部分内容覆盖在B上面-如果点击A让B视图响应)
-28. [折半查找为何不能用于存储结构是链式的有序查找表?](#折半查找为何不能用于存储结构是链式的有序查找表)
-29. [同步、异步与串行、并行的关系?](#同步-异步与串行-并行的关系)
+20. [通知实现原理？如何自定义通知？](#通知实现原理-如何自定义通知)
+21. [一个只读的属性 为什么不能实现KVO](#一个只读的属性-为什么不能实现KVO)
+22. [UIWebView和WKWebView的区别?](#UIWebView和WKWebView的区别?)
+23. [一张图片渲染到屏幕上经过了什么过程?](#一张图片渲染到屏幕上经过了什么过程)
+24. [离屏渲染是什么?什么场景会触发离屏渲染?都有什么具体的优化?](#离屏渲染是什么-什么场景会触发离屏渲染-都有什么具体的优化)
+25. [LRU算法原理？以及如何优化？](#LRU算法原理以及如何优化)
+26. [NSMutableArray是线程安全的么？如何创建线程安全的NSMutableArray?](#NSMutableArray是线程安全的么-如何创建线程安全的NSMutableArray)
+27. [UITableView性能优化汇总](#UITableView性能优化汇总)
+28. [有两个视图A/B,A有一部分内容覆盖在B上面，如果点击A让B视图响应？](#有两个视图A/B-A有一部分内容覆盖在B上面-如果点击A让B视图响应)
+29. [折半查找为何不能用于存储结构是链式的有序查找表?](#折半查找为何不能用于存储结构是链式的有序查找表)
+30. [同步、异步与串行、并行的关系?](#同步-异步与串行-并行的关系)
 
 
 
@@ -667,6 +668,180 @@ void setValue(id self,SEL _cmd,NSString *newValue){
     //操作完成后指回动态创建的新类
     object_setClass(self, newClass);
 }
+
+```
+
+#### 通知实现原理 如何自定义通知  
+
+
+实现原理  
+自定义通知可以先创建一个Notification对象，将注册消息的observer、通知名name、通知触发的方法选择器等写入Notification,然后再创建一个NotificationCenter类单例，并且在单例内部创建一个数组，用来存储所有的Notification,每当需要注册通知时，就将需要注册的信息绑定到Notification对象上，放到单例全局数组中，在发送通知消息的时候，根据通知名遍历单例数组匹配对应的Notification,再通过IMP直接调用注册通知的对象的响应方法即可。    
+
+
+创建Notification类  
+
+声明文件部分
+
+```
+@interface Notification : NSObject
+@property (nonatomic, strong, readwrite) NSDictionary *userInfo;
+@property (nonatomic, assign) id object;
+@property (nonatomic, assign) id observer;
+@property (nonatomic, copy) NSString *name;
+@property (nonatomic, copy) void(^callBack)(void);
+@property (nonatomic, assign) SEL aSelector;
+
+- (NSString *)name;
+- (id)object;
+- (NSDictionary *)userInfo;
+
++ (instancetype)notificationWithName:(NSString *)aname object:(id)anObject;
++ (instancetype)notificationWithName:(NSString *)aname object:(id)anObject userInfo:(NSDictionary *)aUserInfo;
+- (instancetype)initWithName:(NSString *)name object:(id)object userInfo:(NSDictionary *)userInfo;
+
+
+@end
+
+```
+
+实现文件部分  
+
+```
+@implementation Notification
+
++ (instancetype)notificationWithName:(NSString *)aname object:(id)anObject {
+    return [Notification notificationWithName:aname object:anObject userInfo:nil];
+}
+
++ (instancetype)notificationWithName:(NSString *)aname object:(id)anObject userInfo:(NSDictionary *)aUserInfo {
+    
+    Notification *nofi = [[Notification alloc]init];
+    nofi.name = aname;
+    nofi.object = anObject;
+    nofi.userInfo = aUserInfo;
+    return nofi;
+}
+
+- (instancetype)initWithName:(NSString *)name object:(id)object userInfo:(NSDictionary *)userInfo {
+    return [Notification notificationWithName:name object:object userInfo:userInfo];
+}
+
+@end
+
+```
+
+创建NOtificationCenter类进行通知的管理  
+
+
+声明文件添加注册和发送通知两类方法  
+
+```
+@interface NotificationCenter : NSObject
+
++ (instancetype)defaultCenter;
+- (void)addObserver:(id)observer callBack:(void(^)(void))callBack name:(NSString *)aName object:(id)anObject;
+- (void)addObserver:(id)observer selector:(SEL)aSelector name:(NSString *)aName object:(id)anObject;
+
+- (void)postNotification:(Notification *)notification;
+- (void)postNotificationName:(NSString *)aName object:(id)anObject;
+- (void)postNotificationName:(NSString *)aName object:(id)anObject userInfo:(NSDictionary *)aUserInfo;
+
+@end
+
+```
+
+实现文件主要内容保存和IMP函数调用两部分  
+
+```
+@implementation NotificationCenter{
+    NSMutableArray *_nofiArray;
+}
+
++ (instancetype)defaultCenter {
+    static NotificationCenter *_infoCenter = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _infoCenter = [[NotificationCenter alloc]init];
+    });
+    return _infoCenter;
+}
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _nofiArray = [[NSMutableArray alloc]init];
+    }
+    return self;
+}
+
+- (void)addObserver:(id)observer selector:(SEL)aSelector callBack:(void (^)(void))callBack name:(NSString *)aName object:(id)anObject {
+    
+    Notification *nofi = [[Notification alloc]init];
+    nofi.callBack = callBack;
+    nofi.name = aName;
+    nofi.aSelector = aSelector;
+    nofi.observer = observer;
+    [_nofiArray addObject:nofi];
+}
+
+- (void)addObserver:(id)observer callBack:(void (^)(void))callBack name:(NSString *)aName object:(id)anObject {
+    [self addObserver:observer selector:nil callBack:callBack name:aName object:anObject];
+}
+
+- (void)addObserver:(id)observer selector:(SEL)aSelector name:(NSString *)aName object:(id)anObject {
+    [self addObserver:observer selector:aSelector callBack:nil name:aName object:anObject];
+}
+
+- (void)postNotificationName:(NSString *)aName object:(id)anObject {
+    
+    for (Notification *nofi in _nofiArray) {
+           if ([nofi.name isEqualToString:aName]) {
+               
+               nofi.object = anObject ? : anObject;
+               
+               if (nofi.callBack) {
+                   nofi.callBack();
+               }
+               if (nofi.aSelector) {
+                   if ([nofi.observer respondsToSelector:nofi.aSelector]) {
+                       IMP imp = [nofi.observer methodForSelector:nofi.aSelector];
+                       void(*func)(id, SEL,Notification *) = (void *)imp;
+                       func(nofi.observer,nofi.aSelector,nofi);
+                   }
+               }
+           }
+    }
+}
+
+- (void)postNotification:(Notification *)notification {
+    for (Notification *nofi in _nofiArray) {
+        if ([nofi.name isEqualToString:notification.name]) {
+            nofi.callBack = notification.callBack;
+            nofi.object = notification.object;
+            nofi.aSelector = notification.aSelector;
+            nofi.observer = notification.observer;
+            nofi.userInfo = notification.userInfo;
+            break;
+        }
+    }
+    [self postNotificationName:notification.name object:nil];
+}
+
+- (void)postNotificationName:(NSString *)aName object:(id)anObject userInfo:(NSDictionary *)aUserInfo {
+    
+    for (Notification *nofi in _nofiArray) {
+        
+        if ([nofi.name isEqualToString:aName]) {
+            nofi.object = anObject;
+            nofi.userInfo = aUserInfo;
+            break;
+        }
+    }
+    [self postNotificationName:aName object:nil];
+}
+
+@end
 
 ```
 
