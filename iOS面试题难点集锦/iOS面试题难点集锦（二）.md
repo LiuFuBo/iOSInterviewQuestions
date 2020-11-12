@@ -676,7 +676,9 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 实现原理  
 
-自定义通知可以先创建一个Notification对象，将注册消息的observer、通知名name、通知触发的方法选择器等写入Notification,然后再创建一个NotificationCenter类单例，并且在单例内部创建一个数组，用来存储所有的Notification,每当需要注册通知时，就将需要注册的信息绑定到Notification对象上，放到单例全局数组中，在发送通知消息的时候，根据通知名遍历单例数组匹配对应的Notification,再通过IMP直接调用注册通知的对象的响应方法即可。具体实现，请参考demo](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/demo)    
+自定义通知可以先创建一个Notification对象，将注册消息的observer、通知名name、通知触发的方法选择器等写入Notification,然后再创建一个NotificationCenter类单例，并且在单例内部创建一个数组，用来存储所有的Notification,每当需要注册通知时，就将需要注册的信息绑定到Notification对象上，放到单例全局数组中，在发送通知消息的时候，根据通知名遍历单例数组匹配对应的Notification,再通过IMP直接调用注册通知的对象的响应方法即可。[具体实现，请参考demo](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/demo)      
+
+
 
 
 > 创建Notification类，用于保存observer、通知名name，通知触发方法名、block回调等信息  
@@ -730,6 +732,9 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 @end
 
 ```
+  
+
+
 
 > 创建NOtificationCenter类进行通知的管理,包括注册信息的数组保存，发送消息对象查找，以及IMP调用  
 
@@ -751,9 +756,7 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 ```
 
-> 实现文件主要内容保存和IMP函数调用两部分  
-
-* 单例的初始化、数组的创建  
+* 实现文件单例的初始化、数组的创建  
 
 ```
 @implementation NotificationCenter{
