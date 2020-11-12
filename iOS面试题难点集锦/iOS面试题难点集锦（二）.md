@@ -675,12 +675,13 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 
 实现原理  
-自定义通知可以先创建一个Notification对象，将注册消息的observer、通知名name、通知触发的方法选择器等写入Notification,然后再创建一个NotificationCenter类单例，并且在单例内部创建一个数组，用来存储所有的Notification,每当需要注册通知时，就将需要注册的信息绑定到Notification对象上，放到单例全局数组中，在发送通知消息的时候，根据通知名遍历单例数组匹配对应的Notification,再通过IMP直接调用注册通知的对象的响应方法即可。    
+
+自定义通知可以先创建一个Notification对象，将注册消息的observer、通知名name、通知触发的方法选择器等写入Notification,然后再创建一个NotificationCenter类单例，并且在单例内部创建一个数组，用来存储所有的Notification,每当需要注册通知时，就将需要注册的信息绑定到Notification对象上，放到单例全局数组中，在发送通知消息的时候，根据通知名遍历单例数组匹配对应的Notification,再通过IMP直接调用注册通知的对象的响应方法即可。具体实现，请参考demo](https://github.com/LiuFuBo/iOSInterviewQuestions/blob/master/demo)    
 
 
-创建Notification类  
+> 创建Notification类，用于保存observer、通知名name，通知触发方法名、block回调等信息  
 
-声明文件部分
+* 声明文件部分
 
 ```
 @interface Notification : NSObject
@@ -704,7 +705,7 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 ```
 
-实现文件部分  
+* 实现文件部分  
 
 ```
 @implementation Notification
@@ -730,10 +731,10 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 ```
 
-创建NOtificationCenter类进行通知的管理  
+> 创建NOtificationCenter类进行通知的管理,包括注册信息的数组保存，发送消息对象查找，以及IMP调用  
 
 
-声明文件添加注册和发送通知两类方法  
+* 声明文件添加注册和发送通知两类方法  
 
 ```
 @interface NotificationCenter : NSObject
@@ -750,7 +751,9 @@ void setValue(id self,SEL _cmd,NSString *newValue){
 
 ```
 
-实现文件主要内容保存和IMP函数调用两部分  
+> 实现文件主要内容保存和IMP函数调用两部分  
+
+* 单例的初始化、数组的创建  
 
 ```
 @implementation NotificationCenter{
@@ -775,6 +778,11 @@ void setValue(id self,SEL _cmd,NSString *newValue){
     return self;
 }
 
+```
+
+* 对通知消息进行注册，该步骤主要是将注册信息绑定到Notification对象，并存储到全局数组
+
+```
 - (void)addObserver:(id)observer selector:(SEL)aSelector callBack:(void (^)(void))callBack name:(NSString *)aName object:(id)anObject {
     
     Notification *nofi = [[Notification alloc]init];
@@ -793,6 +801,11 @@ void setValue(id self,SEL _cmd,NSString *newValue){
     [self addObserver:observer selector:aSelector callBack:nil name:aName object:anObject];
 }
 
+```
+
+* 发送通知消息，采用遍历数组，通过通知名命中对应能响应该通知的对象，并调用其对象对应的消息响应方法或者block回调  
+
+```
 - (void)postNotificationName:(NSString *)aName object:(id)anObject {
     
     for (Notification *nofi in _nofiArray) {
