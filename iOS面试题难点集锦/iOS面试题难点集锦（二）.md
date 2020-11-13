@@ -1213,7 +1213,7 @@ public:
 
 在可⻅的⻚⾯会重复绘制⻚⾯，每次刷新显示都会去创建新的Cell，非常耗费性能。
 
-解决方案:  创建⼀个静态变量reuseID(代理方法返回Cell会调⽤用很多次，防⽌重复创建，static保证只会被创建⼀次，提⾼性能)，然后，从缓存池中取相应 identifier的Cell并更新数据，如果没有，才开始alloc新的Cell，并用identifier标识 Cell。每个Cell都会注册⼀个identifier(重用标识符)放⼊入缓存池，当需要调⽤的时候就直接从缓存池里找对应的id，当不需要时就放入缓存池等待调⽤。(移出屏幕的 Cell才会放⼊入缓存池中，并不不会被release)
+解决方案:  创建⼀个静态变量reuseID(代理方法返回Cell会调用很多次，防⽌重复创建，static保证只会被创建⼀次，提⾼性能)，然后，从缓存池中取相应 identifier的Cell并更新数据，如果没有，才开始alloc新的Cell，并用identifier标识 Cell。每个Cell都会注册⼀个identifier(重用标识符)放⼊入缓存池，当需要调⽤的时候就直接从缓存池里找对应的id，当不需要时就放入缓存池等待调⽤。(移出屏幕的Cell才会放⼊入缓存池中，并不会被release)
 
 优化方案如下:
 
@@ -1226,16 +1226,16 @@ UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseID];
 
 缓存池内部原理:
 
-当Cell要alloc时，UITableView会在堆中开辟⼀一段内存以供Cell缓存之⽤用。Cell的重 ⽤用通过identifier标识不同类型的Cell，由此可以推断出，缓存池外层可能是⼀个可变字典，通过key来取出内部的Cell，⽽而缓存池为存储不同高度、不同类型(包含图片、 Label等)的Cell，可以推断出缓存池的字典内部可能是一个可变数组，用来存放不不同 类型的Cell，缓存池中只会保存已经被移出屏幕的不同类型的Cell。
+当Cell要alloc时，UITableView会在堆中开辟一段内存以供Cell缓存之用。Cell的重 用通过identifier标识不同类型的Cell，由此可以推断出，缓存池外层可能是⼀个可变字典，通过key来取出内部的Cell，而缓存池为存储不同高度、不同类型(包含图片、 Label等)的Cell，可以推断出缓存池的字典内部可能是一个可变数组，用来存放不同类型的Cell，缓存池中只会保存已经被移出屏幕的不同类型的Cell。
 
 
 缓存池获取可重用Cell的两个方法区别
 
 ```
 -(nullable __kindof UITableViewCell *)dequeueReusableCellWithIdentifier: (NSString *)identifier;
-这个⽅法会查询可重⽤用Cell，如果注册了原型Cell，能够查询到，否则，返回nil;⽽且需要判断if(cell == nil)，才会创建Cell，不推荐
+这个⽅法会查询可重用Cell，如果注册了原型Cell，能够查询到，否则，返回nil;⽽且需要判断if(cell == nil)，才会创建Cell，不推荐
 -(__kindof UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier forIndexPath:(NSIndexPath *)indexPath NS_AVAILABLE_IOS(6_0);
-使⽤这个⽅法之前，必须通过xib(storyboard)或是Class(纯代码)注册可重⽤用 Cell，⽽而且这个方法⼀定会返回一个Cell
+使⽤这个⽅法之前，必须通过xib(storyboard)或是Class(纯代码)注册可重用 Cell，而且这个方法⼀定会返回一个Cell
 //注册Cell
 - (void)registerNib:(nullable UINib *)nib forCellReuseIdentifier:(NSString
 *)identifier NS_AVAILABLE_IOS(5_0);
@@ -1248,11 +1248,11 @@ UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseID];
 
 尽量少的定义Cell类型    
 
-分析Cell结构，尽可能的将 相同内容的抽取到⼀种样式Cell中，前⾯面已经提到了了Cell的重⽤机制，这样就能保证UITbaleView要显示多少内容，真正创建出的Cell可能   只比屏幕显示的Cell多⼀点。虽然Cell的’体积’可能会大点，但是因为Cell的数量量不会很多，完全可以接受的。    
+分析Cell结构，尽可能的将 相同内容的抽取到⼀种样式Cell中，前面已经提到了Cell的重⽤机制，这样就能保证UITbaleView要显示多少内容，真正创建出的Cell可能   只比屏幕显示的Cell多⼀点。虽然Cell的’体积’可能会大点，但是因为Cell的数量不会很多，完全可以接受的。    
 
 好处:
->减少代码量量，减少Nib⽂件的数量，统⼀一个Nib⽂文件定义Cell，容易修改、维护。  
->基于Cell的重⽤用，真正运⾏时铺满屏幕所需的Cell数量⼤致是固定的，设为N个。所以如果如果只有一种Cell，那就是只有N个Cell的实例;但是如果有M种Cell，那么运行时最多可能会是“M x N = MN”个Cell的实例例，虽然可能并不会占⽤用太多内存，但是能少点不是更好吗。  
+>减少代码量，减少Nib⽂件的数量，统⼀一个Nib文件定义Cell，容易修改、维护。  
+>基于Cell的重⽤，真正运⾏时铺满屏幕所需的Cell数量⼤致是固定的，设为N个。所以如果如果只有一种Cell，那就是只有N个Cell的实例;但是如果有M种Cell，那么运行时最多可能会是“M x N = MN”个Cell的实例例，虽然可能并不会占⽤用太多内存，但是能少点不是更好吗。  
 
 
 善用hidden隐藏或显示subviews
@@ -1272,7 +1272,7 @@ UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseID];
 
 四、异步绘制(自定义Cell绘制)
 
-遇到⽐较复杂的界⾯面的时候，如复杂点的图文混排采用异步绘制Cell
+遇到⽐较复杂的界面的时候，如复杂点的图文混排采用异步绘制Cell
 
 
 五、滑动时，按需加载
@@ -1336,7 +1336,7 @@ cell每次被渲染时，判断当前tableView是否处于滚动状态，是的�
 
 解决方案如下:
 
->减少subviews的个数和层级,子控件的层级越深，渲染到屏幕上所需要的计算量量就越大;如多用drawRect绘制元素，替代⽤view显示.  
+>减少subviews的个数和层级,子控件的层级越深，渲染到屏幕上所需要的计算量就越大;如多用drawRect绘制元素，替代⽤view显示.  
 
 >少⽤用subviews的半透明图层,不透明的View，设置opaque为YES，这样在绘制该View时，就不需要考虑被View覆盖的其他内容(尽量设置Cell的view为opaque，避免GPU对Cell下⾯的内容 也进行绘制)
 
