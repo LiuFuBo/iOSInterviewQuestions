@@ -607,6 +607,7 @@ Class objctClass = objc_getMetaClass(NSStringFromClass([NSObject class]).UTF8Str
 NSLog(@"NSObject的元类地址:%p,NSobject的地址:%p",objctClass,[NSObject class]);  
 NSLog(@"NSObject的元类的元类地址:%p",objc_getMetaClass(NSStringFromClass([objctClass class]).UTF8String));  
 NSLog(@"NSObject的元类的父类地址:%p",[objctClass superclass]);  
+NSLog(@"NSObject的父类地址:%p",[NSObject superclass]);  
 ```
 打印结果如下:  
 ```
@@ -618,8 +619,9 @@ NSLog(@"NSObject的元类的父类地址:%p",[objctClass superclass]);
 2020-11-20 11:19:18.890022+0800 AAATest[2691:147165] NSObject的元类地址:0x10678b1d8,NSobject的地址:0x10678b200
 2020-11-20 11:19:18.890173+0800 AAATest[2691:147165] NSObject的元类的元类地址:0x10678b1d8
 2020-11-20 11:19:18.890776+0800 AAATest[2691:147165] NSObject的元类的父类地址:0x10678b200
+2020-11-20 11:46:56.007279+0800 AAATest[4208:196636] NSObject的父类地址:0x0
 ```
-通过打印结果，我们发现Model的元类是一个单独的内存地址，Model的元类的父类就是Father的元类，而因为Father是继承自NSObject的，Father的元类的父类就是NSObject的元类，而NSObject的元类的元类是指向NSObject元类的，也就是说NSObject的元类就是NSobject元类本身，而NSObject元类的父类就是NSObject本身。  
+通过打印结果，我们发现Model的元类是一个单独的内存地址，Model的元类的父类就是Father的元类，而因为Father是继承自NSObject的，Father的元类的父类就是NSObject的元类，而NSObject的元类的元类是指向NSObject元类的，也就是说NSObject的元类就是NSobject元类本身，而NSObject元类的父类就是NSObject本身， NSObject的父类是nil。  
 
 具体的继承关系图如下：  
 
