@@ -578,7 +578,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 
 > 假如现在我们有一个继承链  A->B->C->NSObject, A * a = [[A alloc]init]; 那么这里实例对象 'a' 的父类是谁？ 类对象A的父类又是谁？     
 
-为了验证上面的结果，我们建立了一个Model类继承自Father类，Father类继承自NSObject,然后我们打印他们看他们的地址  
+为了验证上面的结果，我们建立了一个Model类继承自Father类，Father类继承自NSObject,我们打印看看他们的地址  
 ```
 Model *a = [[Model alloc]init];  
 NSLog(@"小a的父类:%@，地址:%p",[a superclass],[a superclass]);  
@@ -594,7 +594,7 @@ NSLog(@"Model的父类:%@，地址:%p",[Model superclass],[Model superclass]);
 
 > 那么我们再次思考 a 的isa 指针是指向Model的，那么Model的isa指针指向的是Model的元类，那么Model的元类的父类又是谁呢？  
 
-接下来我们为了充分的验证，我们分别打印Model的元类，Model的元类的父类，Father的元类，Father的元类的父类，NSObject的元类，NSObject元类的元类，NSObject的元类的父类是谁?我们将他们都打印出来  
+接下来我们为了充分的验证，我们分别打印Model的元类，Model的元类的父类，Father的元类，Father的元类的父类，NSObject的元类，NSObject元类的元类，NSObject的元类的父类
 ```
 NSLog(@"Model的地址:%p",[Model class]);  
 Class clazz = objc_getMetaClass(NSStringFromClass([Model class]).UTF8String);  
