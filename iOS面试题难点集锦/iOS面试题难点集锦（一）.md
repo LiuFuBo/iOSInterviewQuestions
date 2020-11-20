@@ -11,7 +11,9 @@
 
 3. [Runtime在项目中的运用](#Runtime在项目中的运用)
 
-4. [RunLoop和屏幕点击事件传递链以及响应链关系](#RunLoop和屏幕点击事件传递链以及响应链关系)
+4. [Class继承链关系](#Class继承链关系)
+
+5. [RunLoop和屏幕点击事件传递链以及响应链关系](#RunLoop和屏幕点击事件传递链以及响应链关系)
 
 
 
@@ -568,8 +570,65 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 3.字典转模型 `YYModel`。  
 4.`KVO` 实现。  
 5.处理崩溃(NSDictionary, NSMutableDictionary, NSArray, NSMutableArray 的处理) 在开发过程中， 有时候会出现 set object for key 的时候 object 为 Nil 或者 Key 为 Nil， 又或 者初始化array, dic的时候由于数据个数与指定的长度不一致造成崩溃。此时利用runtime 对异常情况进行捕捉，提前 return 或者抛弃多余的长度。  
-6.通过写这些对象的分类，在 `load` 中交换方法 处理按钮的重复点击方法交换。
+6.通过写这些对象的分类，在 `load` 中交换方法 处理按钮的重复点击方法交换。  
 
+
+
+### Class继承链关系    
+
+> 假如现在我们有一个继承链  A->B->C->NSObject, A * a = [[A alloc]init]; 那么这里实例对象 'a' 的父类是谁？ 类对象A的父类又是谁？     
+
+为了验证上面的结果，我们建立了一个Model类继承自Father类，Father类继承自NSObject,然后我们打印他们看他们的地址  
+```
+Model *a = [[Model alloc]init];  
+NSLog(@"小a的父类:%@，地址:%p",[a superclass],[a superclass]);  
+NSLog(@"Model的父类:%@，地址:%p",[Model superclass],[Model superclass]);  
+```
+打印结果如下:  
+
+```
+2020-11-20 10:31:41.655137+0800 AAATest[2007:90242] 小a的父类:Father，地址:0x101e27570  
+2020-11-20 10:31:41.655308+0800 AAATest[2007:90242] Model的父类:Father，地址:0x101e27570  
+```
+通过结果我们可以知道看到a实例对象的父类和Model类对象的父类都是Father  
+
+> 那么我们再次思考 a 的isa 指针是指向Model的，那么Model的isa指针指向的是Model的元类，那么Model的元类的父类又是谁呢？  
+
+接下来我们为了充分的验证，我们分别打印Model的元类，Model的元类的父类，Father的元类，Father的元类的父类，NSObject的元类，NSObject元类的元类，NSObject的元类的父类是谁?我们将他们都打印出来  
+```
+NSLog(@"Model的地址:%p",[Model class]);  
+Class clazz = objc_getMetaClass(NSStringFromClass([Model class]).UTF8String);  
+NSLog(@"Model的元类:%@，地址:%p",clazz,clazz);  
+NSLog(@"Model的元类的父类:%p",objc_getMetaClass(NSStringFromClass([clazz superclass]).UTF8String));  
+Class fatherClazz = objc_getMetaClass(NSStringFromClass([Father class]).UTF8String);  
+NSLog(@"Father的地址:%p，Father的元类地址:%p",[Father class],fatherClazz);  
+NSLog(@"Father的元类的父类的地址:%p",[fatherClazz superclass]);  
+Class objctClass = objc_getMetaClass(NSStringFromClass([NSObject class]).UTF8String);  
+NSLog(@"NSObject的元类地址:%p,NSobject的地址:%p",objctClass,[NSObject class]);  
+NSLog(@"NSObject的元类的元类地址:%p",objc_getMetaClass(NSStringFromClass([objctClass class]).UTF8String));  
+NSLog(@"NSObject的元类的父类地址:%p",[objctClass superclass]);  
+```
+打印结果如下:  
+```
+2020-11-20 11:19:18.887960+0800 AAATest[2691:147165] Model的地址:0x105eae658
+2020-11-20 11:19:18.888548+0800 AAATest[2691:147165] Model的元类:Model，地址:0x105eae630
+2020-11-20 11:19:18.888779+0800 AAATest[2691:147165] Model的元类的父类:0x105eae540
+2020-11-20 11:19:18.889115+0800 AAATest[2691:147165] Father的地址:0x105eae568，Father的元类地址:0x105eae540
+2020-11-20 11:19:18.889451+0800 AAATest[2691:147165] Father的元类的父类的地址:0x10678b1d8
+2020-11-20 11:19:18.890022+0800 AAATest[2691:147165] NSObject的元类地址:0x10678b1d8,NSobject的地址:0x10678b200
+2020-11-20 11:19:18.890173+0800 AAATest[2691:147165] NSObject的元类的元类地址:0x10678b1d8
+2020-11-20 11:19:18.890776+0800 AAATest[2691:147165] NSObject的元类的父类地址:0x10678b200
+```
+通过打印结果，我们发现Model的元类是一个单独的内存地址，Model的元类的父类就是Father的元类，而因为Father是继承自NSObject的，Father的元类的父类就是NSObject的元类，而NSObject的元类的元类是指向NSObject元类的，也就是说NSObject的元类就是NSobject元类本身，而NSObject元类的父类就是NSObject本身。  
+
+具体的继承关系图如下：  
+
+<div align= center>
+<img src = "http://brandonliu.pub/class-diagram.jpg"/>
+</div>
+
+
+该图咱们在讲解class类结构的时候已经分析过。  
 
 ### RunLoop和屏幕点击事件传递链以及响应链关系
 
