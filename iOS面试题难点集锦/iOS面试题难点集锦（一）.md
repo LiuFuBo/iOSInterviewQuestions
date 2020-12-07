@@ -13,6 +13,8 @@
 
 4. [Class继承链关系](#Class继承链关系)
 
+5. [以上代码打印结果是什么?](#以上代码打印结果是什么)
+
 5. [RunLoop和屏幕点击事件传递链以及响应链关系](#RunLoop和屏幕点击事件传递链以及响应链关系)
 
 
@@ -631,6 +633,72 @@ NSLog(@"NSObject的父类地址:%p",[NSObject superclass]);
 
 
 该图咱们在讲解class类结构的时候已经分析过。  
+
+
+
+### 以上代码打印结果是什么    
+
+有以下代码，他们执行以后打印结果是怎么样的？为什么？  
+
+```
+#import "ViewController.h"  
+
+@interface NSObject (objc)  
+
++ (void)funTest;  
+
+@end  
+@implementation NSObject (objc)
+
+-(void)funTest {
+    NSLog(@"this is function test");
+}
+
+@end
+@interface ViewController ()
+
+@end
+
+@implementation ViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [NSObject funTest];
+    NSObject *objc = [NSObject new];
+    [objc funTest];
+}
+
+@end
+```
+以上代码运行结果如下:
+```
+2020-12-07 17:26:26.718361+0800 AAATest[5920:304985] this is function test  
+2020-12-07 17:26:26.718559+0800 AAATest[5920:304985] this is function test  
+```
+这里我们观察到NSObject的 ’funTest‘类方法并没有方法的实现，为何最终调用了实例方法呢？咱们来一步步分析。  
+
+> NSObject的类方法是存储在NSObject的元类中的  
+> NSObject的元类中并没有 ’funTest‘ 类方法  
+> NSObject的元类中找到类方法实现的时候，就需要去NSObject元类的父类中寻找  
+> NSObject的元类的父类指向的是NSObject类对象  
+> 而咱们 objc 这个NSObject的实例对象的实例方法也是在NSObject类对象中寻找的  
+> 在咱们NSObject类对象中方法是存放在专门的hash散列表中，通过sel作为key，可以获取到对象的imp方法函数指针  
+> 而这里咱们的类方法和实例方法的方法名是一样的，所以找到的imp就是实例方法的imp  
+
+因此，上面的代码类方法和实例方法打印结果是一样的    
+
+这里我们猜想一下，假设上面是一个继承自NSObject的Model类，添加同样的方法和实现，最后结果又是怎么样的呢？    
+
+我们再次来整理一下整个查找过程如下:    
+> Model中类方法是存储在Model的元类中的  
+> Model的元类中并没有 ’funTest‘ 类方法的实现imp  
+> Model的元类找不到的话就会去Model的元类的父类中寻找  
+> Model的元类的父类指向的是NSObject的元类(根元类)  
+> 而NSObject根元类中也没有 'funTest' 类方法  
+> 这个时候就需要去NSObject根元类的父类中寻找  
+> 而NSObject的根元类的父类又是指向的NSObject类对象本身  
+> 而NSObject类对象中并没有 'funTest' 类方法的实现，所以程序会直接崩溃  
+
+因此，如果是Model中同样代码，则会造成整个程序直接崩溃，都无法执行到实例方法的执行。  
 
 ### RunLoop和屏幕点击事件传递链以及响应链关系
 
