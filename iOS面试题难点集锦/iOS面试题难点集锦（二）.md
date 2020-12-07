@@ -1388,10 +1388,10 @@ cell每次被渲染时，判断当前tableView是否处于滚动状态，是的�
 
 #### 字典一般是用字符串来当做Key的 可以用对象来做key么 要怎么做
 
- 字典是可以用对象来做key的，不过需要满足几个条件  
-> 1.NSDictionary的key实际是使用了copy方法，所以key必须要遵守NSCopying协议
-> 2.实现 ‘copyWithZone:’ 方法
-> 3.必须要保证 'copyWithZone: ' 返回对象为同一个地址对象，如果不能保证，则必须重写hashCode和isEqual方法，用来保证让存进去的对象key的地址不发生变化。
+ 字典是可以用对象来做key的，不过需要满足几个条件    
+> 1.NSDictionary的key实际是使用了copy方法，所以key必须要遵守NSCopying协议  
+> 2.实现 ‘copyWithZone:’ 方法  
+> 3.必须要保证 'copyWithZone: ' 返回对象为同一个地址对象，如果不能保证，则必须重写hashCode和isEqual方法，用来保证让存进去的对象key的地址不发生变化。  
 
 
 

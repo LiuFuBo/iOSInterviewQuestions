@@ -638,7 +638,7 @@ NSLog(@"NSObject的父类地址:%p",[NSObject superclass]);
 
 ### 以上代码打印结果是什么    
 
-有以下代码，他们执行以后打印结果是怎么样的？为什么？  
+有以下代码，它们执行以后打印结果是怎么样的？为什么？  
 
 ```
 #import "ViewController.h"  
@@ -674,7 +674,7 @@ NSLog(@"NSObject的父类地址:%p",[NSObject superclass]);
 2020-12-07 17:26:26.718361+0800 AAATest[5920:304985] this is function test  
 2020-12-07 17:26:26.718559+0800 AAATest[5920:304985] this is function test  
 ```
-这里我们观察到NSObject的 ’funTest‘类方法并没有方法的实现，为何最终调用了实例方法呢？咱们来一步步分析。  
+这里我们观察到NSObject的 ’funTest‘ 类方法并没有方法的实现，为何最终调用了实例方法呢？咱们来一步步分析。  
 
 > NSObject的类方法是存储在NSObject的元类中的  
 > NSObject的元类中并没有 ’funTest‘ 类方法  
