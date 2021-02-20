@@ -614,62 +614,86 @@ objc_registerClassPair(Class _Nonnull cls)
 
 ```
 -(void)addObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath options:(NSKeyValueObservingOptions)options context:(void *)context{
-    NSString *oldName = NSStringFromClass(self.class);
-    NSString *newName = [@"HBKVO_" stringByAppendingString:oldName];
-    //1、创建一个子类
-    Class newClass = objc_allocateClassPair(self.class, newName.UTF8String, 0);
-    //2、注册该类
-    objc_registerClassPair(newClass);
-    //3、指向子类
-    object_setClass(self, newClass);
-    //4、动态添加一个方法
-    NSString *first = [keyPath substringWithRange:NSMakeRange(0, 1)];
-    NSString *other = [keyPath substringFromIndex:1];
-    NSString *setName = [NSString stringWithFormat:@"set%@%@:",first.uppercaseString,other];//设置一个属性名首字母大写的方法
-    Method method = class_getInstanceMethod(self.class, sel_registerName(setName.UTF8String));
-    const char *types = method_getTypeEncoding(method);
-    class_addMethod(newClass, sel_registerName(setName.UTF8String), (IMP)setValue, types);
-    //class_addMethod(newClass, sel_registerName(setMethod.UTF8String), (IMP)setName, "v@:@");
     
-    //设置关联数据
-    //获取元类旧值使用
-    objc_setAssociatedObject(self, "keyPath", keyPath, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    //设置新值的时候使用
-    objc_setAssociatedObject(self, "setName", setName, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    //创建、注册子类
+    NSString *oldClassName = NSStringFromClass([self  class]);
+    NSString *newClassName = [NSString stringWithFormat:@"SKVONotifying_%@",oldClassName];
+    
+    Class clazz = objc_getClass(newClassName.UTF8String);
+    if (!clazz) {
+        clazz = objc_allocateClassPair([self class], newClassName.UTF8String, 0);
+        objc_registerClassPair(clazz);
+    }
+    
+    //set方法名
+    if (keyPath.length <= 0)return;
+    NSString *fChar = [[keyPath substringToIndex:1] uppercaseString];//第一个char
+    NSString *rChar = [keyPath substringFromIndex:1];//第二到最后char
+    NSString *setterChar = [NSString stringWithFormat:@"set%@%@:",fChar,rChar];
+    SEL setSEL = NSSelectorFromString(setterChar);
+    
+    //添加set方法
+    Method getMethod = class_getInstanceMethod([self class], setSEL);
+    const char *types = method_getTypeEncoding(getMethod);
+    class_addMethod(clazz, setSEL, (IMP)setterMethod, types);
+
+    //改变isa指针，指向新建的子类
+    object_setClass(self, clazz);
+    
+
+    //保存getter方法名，获取旧值的时候使用
+    objc_setAssociatedObject(self, "getterKey", keyPath, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
+    //保存setter方法名,设置新值的时候使用
+    objc_setAssociatedObject(self, "setterKey", setName, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
     //通知值变化
-    objc_setAssociatedObject(self, "observer", observer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, "observerKey", observer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
     //传进来的内容需要回传
-    objc_setAssociatedObject(self, "context", (__bridge id _Nullable)(context), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, "contextKey", (__bridge id _Nullable)(context), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 ```
 
 >6.设置属性值的新调用方法
 
 ```
-void setValue(id self,SEL _cmd,NSString *newValue){
-    NSLog(@"newValue:%@",newValue);
-    NSString *keyPath = objc_getAssociatedObject(self, "keyPath");
-    NSString *setName = objc_getAssociatedObject(self, "setName");
-    id observer = objc_getAssociatedObject(self, "observer");
-    id context = objc_getAssociatedObject(self, "context");
-    //存储新类
-    Class newClass = [self class];
-    //指向父类获取旧值
-    object_setClass(self, class_getSuperclass(newClass));
-    NSString *oldValue = objc_msgSend(self,sel_registerName(keyPath.UTF8String));
-    //对原始类属性或成员变量复制
-    objc_msgSend(self, sel_registerName(setName.UTF8String),newValue);
-    NSMutableDictionary *change = [NSMutableDictionary dictionary];
-    if (oldValue) {
-        change[NSKeyValueChangeOldKey] = oldValue;
-    }
+void setterMethod(id self, SEL _cmd, id newValue){
+
+    NSString *setterChar = objc_getAssociatedObject(self, "setterKey");
+    NSString *getterChar = objc_getAssociatedObject(self, "getterKey");
+
+     //保存子类类型
+    Class clazz = [self class];
+    
+    //isa 指向原类
+    object_setClass(self, class_getSuperclass(clazz));
+    
+    //调用原类get方法，获取oldValue
+    id oldValue = objc_msgSend(self, NSSelectorFromString(getterChar));
+    
+    //调用原类set方法
+    objc_msgSend(self, NSSelectorFromString(setterChar),newValue);
+    
+    NSMutableDictionary *change = [[NSMutableDictionary alloc]init];
     if (newValue) {
         change[NSKeyValueChangeNewKey] = newValue;
     }
+    if (oldValue) {
+        change[NSKeyValueChangeOldKey] = oldValue;
+    }
+
+    //原类观察者
+    NSObject *observer = objc_getAssociatedObject(self, "observerKey");
+    
+    //原类存储的上下文
+    id context = objc_getAssociatedObject(self, "contextKey");
+
     //调用observer的回调方法
-    objc_msgSend(observer, @selector(observeValueForKeyPath:ofObject:change:context:),keyPath,observer,change,context);
+    objc_msgSend(observer, @selector(observeValueForKeyPath:ofObject:change:context:),getterChar,observer,change,context);
+    
     //操作完成后指回动态创建的新类
-    object_setClass(self, newClass);
+    object_setClass(self, clazz);
 }
 
 ```
