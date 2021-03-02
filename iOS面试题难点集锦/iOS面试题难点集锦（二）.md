@@ -38,7 +38,8 @@
 32. [字典，一般是用字符串来当做Key的，可以用对象来做key么？要怎么做?](#字典一般是用字符串来当做Key的-可以用对象来做key么-要怎么做)
 33. [苹果公司为什么要设计元类？](#苹果公司为什么要设计元类)
 34. [结构体和联合区的区别？](#结构体和联合区的区别)  
-35. [CALayer和UIView的区别？](#CALayer和UIView的区别)  
+35. [CALayer和UIView的区别？](#CALayer和UIView的区别)   
+36. [一个NSObject对象占用多少内存？](#一个NSObject对象占用多少内存)   
 
 
 
@@ -1444,6 +1445,152 @@ cell每次被渲染时，判断当前tableView是否处于滚动状态，是的�
 * UIView可以响应时间，CALayer却不能，UIView继承自UIResponder，UIResponder定义了很多处理各种事件和事件传递的接口，而CALayer直接继承自NSObject,所以并没有响应的处理事件的接口。  
 * UIView的frame仅简单通过CALayer的frame来显示，但是CALayer的frame同时由anchorPoint,position,bounds和transform共同决定。  
 * UIView主要负责对显示内容的管理而CALayer主要侧重于显示内容的绘制。  
+
+
+#### 一个NSObject对象占用多少内存  
+
+首先回答问题:  
+* 系统分配了16个字节给NSObject对象 (通过malloc_size 函数获得)  
+* 但NSObject对象内部只使用了8个字节的空间  (64bit环境下，可以通过class_getInstanceSize函数获得)  
+  
+为什么是8个字节呢？    
+我们打开NSObject类进去查看实现:  
+```
+@interface NSObject <NSObject> {
+
+    Class isa  OBJC_ISA_AVAILABILITY;
+}
+```
+NSObject包含一个结构体指针。在64位系统上指针占用8个字节（32位系统4个字节），所以 NSObject 在64位上占用 8 字节。  
+  
+为何又是16字节？  
+但是在前文，我们通过 malloc_size 发现系统输出的内存大小又是 16 字节。这又是为何呢？通过 objc4 源码，我们可以追踪下 NSObject 的 alloc 的过程。  
+```
+alloc -> _objc_rootAlloc -> callAlloc -> class_createInstance -> _class_createInstanceFromZone
+```
+在_class_createInstanceFromZone函数中实现如下：  
+
+```
+_class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone, 
+                              bool cxxConstruct = true, 
+                              size_t *outAllocatedSize = nil)
+{
+    if (!cls) return nil;
+
+    assert(cls->isRealized());
+
+    // Read class's info bits all at once for performance
+    bool hasCxxCtor = cls->hasCxxCtor();
+    bool hasCxxDtor = cls->hasCxxDtor();
+    bool fast = cls->canAllocNonpointer();
+
+    size_t size = cls->instanceSize(extraBytes);
+    if (outAllocatedSize) *outAllocatedSize = size;
+
+    id obj;
+    if (!zone  &&  fast) {
+        obj = (id)calloc(1, size);
+        if (!obj) return nil;
+        obj->initInstanceIsa(cls, hasCxxDtor);
+    } 
+    else {
+        if (zone) {
+            obj = (id)malloc_zone_calloc ((malloc_zone_t *)zone, 1, size);
+        } else {
+            obj = (id)calloc(1, size);
+        }
+        if (!obj) return nil;
+
+        // Use raw pointer isa on the assumption that they might be 
+        // doing something weird with the zone or RR.
+        obj->initIsa(cls);
+    }
+
+    if (cxxConstruct && hasCxxCtor) {
+        obj = _objc_constructOrFree(obj, cls);
+    }
+
+    return obj;
+}
+
+```
+这里我们重点关注 size_t size = cls->instanceSize(extraBytes); 这个函数调用计算需要分配空间的大小。  
+
+```
+ size_t instanceSize(size_t extraBytes) {
+        size_t size = alignedInstanceSize() + extraBytes;
+        // CF requires all objects be at least 16 bytes.
+        if (size < 16) size = 16;
+        return size;
+ }
+
+```
+可以看到。系统会给小于16字节的对象也会分配 16 字节的内存大小。 所以在前文中 malloc_size 的结果是 16，相当于OC中的对象最小内存空间大小是16字节。  
+
+> 注意：在instanceSize函数中 alignedInstanceSize 会对结构体进行字节对齐的计算。  
+
+```
+#ifdef __LP64__
+#   define WORD_MASK 7UL
+#else
+#   define WORD_MASK 3UL
+#end
+
+static inline size_t word_align(size_t x) {
+    return (x + WORD_MASK) & ~WORD_MASK;
+}
+
+/**
+如： x =  17; 即(17 + 7 & ~7)
+ 
+  0001 0001
++ 0000 0111
+------------
+  0001 1000// 24
+& 1111 1000 // ~7 
+------------
+  0001 1000 // 24
+  
+实际上需要 17 字节的大小，但系统会自动字节对齐到 24 字节。
+*/
+
+```
+除此之外，libmalloc源码中查看到 malloc_zone_calloc / calloc源代码，系统还会进行一次内存对齐的操作，以 16 字节的倍数分配内存大小。  
+
+```
+#define SHIFT_NANO_QUANTUM		4
+#define NANO_REGIME_QUANTA_SIZE	(1 << SHIFT_NANO_QUANTUM) // 16
+
+static MALLOC_INLINE size_t
+segregated_size_to_fit(nanozone_t *nanozone, size_t size, size_t *pKey)
+{
+	size_t k, slot_bytes;
+	
+	// 最小 16 字节
+	if (0 == size) { 
+		size = NANO_REGIME_QUANTA_SIZE; // Historical behavior
+	}
+	// 确保内存大小为 16 的倍数
+	k = (size + NANO_REGIME_QUANTA_SIZE - 1) >> SHIFT_NANO_QUANTUM; // round up and shift for number of quanta
+	slot_bytes = k << SHIFT_NANO_QUANTUM;							// multiply by power of two quanta size
+	*pKey = k - 1;													// Zero-based!
+
+	return slot_bytes;
+}
+
+/**
+
+如果size 为 24 
+(24 + 16 - 1) >> 4
+39 >> 4
+
+ 0010 0101 >> 4 = 0000 0010
+ 0000 0010 << 4 = 0010 0000 // 32
+最终分配了 32 字节的内存。
+*/
+
+```
+所以，最终iOS分配的内存大小会是16的倍数大小。  
 
 
 
