@@ -678,7 +678,7 @@ NSLog(@"NSObject的父类地址:%p",[NSObject superclass]);
 
 > NSObject的类方法是存储在NSObject的元类中的  
 > NSObject的元类中并没有 ’funTest‘ 类方法  
-> NSObject的元类中找到类方法实现的时候，就需要去NSObject元类的父类中寻找  
+> NSObject的元类中找不到类方法实现的时候，就需要去NSObject元类的父类中寻找  
 > NSObject的元类的父类指向的是NSObject类对象  
 > 而咱们 objc 这个NSObject的实例对象的实例方法也是在NSObject类对象中寻找的  
 > 在咱们NSObject类对象中方法是存放在专门的hash散列表中，通过sel作为key，可以获取到对象的imp方法函数指针  
