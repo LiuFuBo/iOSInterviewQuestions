@@ -15,31 +15,37 @@
 9. [load 和 initialize 方法的区别](#load-和-initialize-方法的区别)  
 10. [RunLoop 的 CFRunLoopModeRef 结构体有啥内容? ](#runLoop-的-cfrunloopmoderef-结构体有啥内容)  
 11. [Category为现有的类提供拓展性，为何它可以提供拓展性?](#category为现有的类提供拓展性-为何它可以提供拓展性)  
-12. [NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容-为何不会覆盖咱们自定义的属性)  
-13. [load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作-是否需要自动释放池)  
-14. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
-15. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)   
-16. [浅谈iOS中weak的底层实现原理](#浅谈iOS中weak的底层实现原理)
-17. [多线程死锁原因？](#多线程死锁原因)
-18. [单核处理器和多核处理器的区别?](#单核处理器和多核处理器的区别)
-19. [KVO实现原理?如何自己实现KVO？](#KVO实现原理-如何自己实现KVO)
-20. [通知实现原理？如何自定义通知？](#通知实现原理-如何自定义通知)
-21. [一个只读的属性 为什么不能实现KVO](#一个只读的属性-为什么不能实现KVO)
-22. [UIWebView和WKWebView的区别?](#UIWebView和WKWebView的区别?)
-23. [一张图片渲染到屏幕上经过了什么过程?](#一张图片渲染到屏幕上经过了什么过程)
-24. [离屏渲染是什么?什么场景会触发离屏渲染?都有什么具体的优化?](#离屏渲染是什么-什么场景会触发离屏渲染-都有什么具体的优化)
-25. [LRU算法原理？以及如何优化？](#LRU算法原理以及如何优化)
-26. [NSMutableArray是线程安全的么？如何创建线程安全的NSMutableArray?](#NSMutableArray是线程安全的么-如何创建线程安全的NSMutableArray)
-27. [UITableView性能优化汇总](#UITableView性能优化汇总)
-28. [有两个视图A/B,A有一部分内容覆盖在B上面，如果点击A让B视图响应？](#有两个视图A/B-A有一部分内容覆盖在B上面-如果点击A让B视图响应)
-29. [折半查找为何不能用于存储结构是链式的有序查找表?](#折半查找为何不能用于存储结构是链式的有序查找表)
-30. [同步、异步与串行、并行的关系?](#同步-异步与串行-并行的关系)
-31. [类目为何不能添加属性？](#类目为何不能添加属性)
-32. [字典，一般是用字符串来当做Key的，可以用对象来做key么？要怎么做?](#字典一般是用字符串来当做Key的-可以用对象来做key么-要怎么做)
-33. [苹果公司为什么要设计元类？](#苹果公司为什么要设计元类)
-34. [结构体和联合区的区别？](#结构体和联合区的区别)  
-35. [CALayer和UIView的区别？](#CALayer和UIView的区别)   
-36. [一个NSObject对象占用多少内存？](#一个NSObject对象占用多少内存)   
+12. [Category为何不能直接添加属性？](#Category为何不能直接添加属性)  
+13. [NSObject对象苹果增加了一些内容，为何不会覆盖咱们自定义的属性?](#NSObject对象苹果增加了一些内容-为何不会覆盖咱们自定义的属性)  
+14. [load方法里如果有大量对象的创建的操作是，是否需要自动释放池?](#load方法里如果有大量对象的创建的操作-是否需要自动释放池)  
+15. [AppDelegate 各个常用代理方法都是何时调用的?](#AppDelegate-各个常用代理方法都是何时调用的)  
+16. [UIViewController 生命周期方法调用顺序?](#UIViewController-生命周期方法调用顺序)   
+17. [浅谈iOS中weak的底层实现原理](#浅谈iOS中weak的底层实现原理)
+18. [多线程死锁原因？](#多线程死锁原因)
+19. [单核处理器和多核处理器的区别?](#单核处理器和多核处理器的区别)
+20. [KVO实现原理?如何自己实现KVO？](#KVO实现原理-如何自己实现KVO)
+21. [通知实现原理？如何自定义通知？](#通知实现原理-如何自定义通知)
+22. [一个只读的属性 为什么不能实现KVO](#一个只读的属性-为什么不能实现KVO)
+23. [UIWebView和WKWebView的区别?](#UIWebView和WKWebView的区别?)
+24. [一张图片渲染到屏幕上经过了什么过程?](#一张图片渲染到屏幕上经过了什么过程)
+25. [离屏渲染是什么?什么场景会触发离屏渲染?都有什么具体的优化?](#离屏渲染是什么-什么场景会触发离屏渲染-都有什么具体的优化)
+26. [LRU算法原理？以及如何优化？](#LRU算法原理以及如何优化)
+27. [NSMutableArray是线程安全的么？如何创建线程安全的NSMutableArray?](#NSMutableArray是线程安全的么-如何创建线程安全的NSMutableArray)
+28. [UITableView性能优化汇总](#UITableView性能优化汇总)
+29. [有两个视图A/B,A有一部分内容覆盖在B上面，如果点击A让B视图响应？](#有两个视图A/B-A有一部分内容覆盖在B上面-如果点击A让B视图响应)
+30. [折半查找为何不能用于存储结构是链式的有序查找表?](#折半查找为何不能用于存储结构是链式的有序查找表)
+31. [同步、异步与串行、并行的关系?](#同步-异步与串行-并行的关系)
+32. [类目为何不能添加属性？](#类目为何不能添加属性)
+33. [字典，一般是用字符串来当做Key的，可以用对象来做key么？要怎么做?](#字典一般是用字符串来当做Key的-可以用对象来做key么-要怎么做)
+34. [苹果公司为什么要设计元类？](#苹果公司为什么要设计元类)
+35. [结构体和联合区的区别？](#结构体和联合区的区别)  
+36. [CALayer和UIView的区别？](#CALayer和UIView的区别)   
+37. [一个NSObject对象占用多少内存？](#一个NSObject对象占用多少内存)   
+38. [两种方式调用class，得到结果是啥？调用区别是什么？](#两种方式调用class-得到结果是啥-调用区别是什么)  
+39. [如何监听非UI主线程添加视图？](#如何监听非UI主线程添加视图)  
+40. [假如给你一张50M的本地图片，你如何保证图片能够流畅的在手机上显示出来，并且内存不暴涨？](#假如给你一张50M的本地图片-你如何保证图片能够流畅的在手机上显示出来-并且内存不暴涨)  
+
+
 
 
 
@@ -94,7 +100,7 @@
 
 #### 8.执行初始化方法
 
-这一步由 `initializeMainExecutable()` 完成。`dyld` 会优先初始化动态库，然后初始化主程序。该函数首先执行 `runInitializers()` ， 内部再依次调用 `processInitializers()` 、 `recursiveInitialization()` runtime在这个时间被初始化，runtime初始化后不会闲着，在`_objc_init` 中注册了几个通知，从 `dyld` 这里接手了几个活，其中包括负责初始化相应依赖库里的类结构，调用依赖库里所有的 `laod` 方法。这里注册的 `init` 回调函数就是 `load_images()`，回调里 面调用了 call_load_methods()来执行所有的+ load 方法。但由于 lazy bind 机制，依赖库多数 都是在使用时才进行 `bind`，所以这些依赖库的类结构初始化都是发生在程序里第一次使用 到该依赖库时才进行的。
+这一步由 `initializeMainExecutable()` 完成。`dyld` 会优先初始化动态库，然后初始化主程序。该函数首先执行 `runInitializers()` ， 内部再依次调用 `processInitializers()` 、 `recursiveInitialization()` runtime在这个时间被初始化，runtime初始化后不会闲着，在`_objc_init` 中注册了几个通知，从 `dyld` 这里接手了几个活，其中包括负责初始化相应依赖库里的类结构，调用依赖库里所有的 `load` 方法。这里注册的 `init` 回调函数就是 `load_images()`，回调里 面调用了 call_load_methods()来执行所有的+ load 方法。但由于 lazy bind 机制，依赖库多数 都是在使用时才进行 `bind`，所以这些依赖库的类结构初始化都是发生在程序里第一次使用到该依赖库时才进行的。
 
 
 #### 9.查找入口点并返回
@@ -136,7 +142,7 @@ GCD 使用场景:
 GCD 定时器、切换线程、耗时操作、多个异步操作完成后再更新UI。  
 
 1、dispatch_barrier_sync 需要等待自己的任务(barrier)结束之后，才会继续添加并执行写 在 barrier 后面的任务(4、5、6)，然后执行后面的任务。    
-2、dispatch_barrier_async 将自己的任务(barrier)插入到 queue 之后，不会等待自己的任务 结束，它会继续把后面的任务(4、5、6)插入到 queue，然后执行任务。  
+2、dispatch_barrier_async 将自己的任务(barrier)插入到 queue 之后，不会等待自己的任务结束，它会继续把后面的任务(4、5、6)插入到 queue，然后执行任务。  
 
 ### NSURLSession 和 NSURLConnection 区别?  
 
@@ -146,11 +152,11 @@ NSURLSession 是 NSURLConnection 的替代者。
 
 2.普通任务和上传  
 
-NSURLSession 针对下载/上传等复杂的网络操作提供了专门的解决方案，针对普通、上传和 下载分别对应三种不同的网络请求任务:NSURLSessionDataTask, NSURLSessionUploadTask 和 NSURLSessionDownloadTask.。创建的 task 都是挂起状态，需要 resume 才能执行。当服务器 返回的数据较小时，NSURLSession 与 NSURLConnection 执行普通任务的操作步骤没有区别。 执行上传任务时，NSURLSession 与 NSURLConnection 一样同样需要设置 POST 请求的请求体 进行上传。
+NSURLSession 针对下载/上传等复杂的网络操作提供了专门的解决方案，针对普通、上传和 下载分别对应三种不同的网络请求任务:NSURLSessionDataTask, NSURLSessionUploadTask 和 NSURLSessionDownloadTask。创建的 task 都是挂起状态，需要 resume 才能执行。当服务器返回的数据较小时，NSURLSession 与 NSURLConnection 执行普通任务的操作步骤没有区别。 执行上传任务时，NSURLSession 与 NSURLConnection 一样都需要设置 POST 请求的请求体再进行上传。
 
 3.下载任务  
 
-NSURLConnection 下载文件时，先将整个文件下载到内存，然后再写入沙盒，如果文件比较 大，就会出现内存暴涨的情况。而使用 NSURLSessionDownloadTask 下载文件，会默认下载到沙 盒中的 tem 文件夹中，不会出现内存暴涨的情况，但在下载完成后会将 tem 中的临时文件 删除，需要在初始化任务方法时，在 completionHandler 回调中增加保存文件的代码。  
+NSURLConnection 下载文件时，先将整个文件下载到内存，然后再写入沙盒，如果文件比较大，就会出现内存暴涨的情况。而使用 NSURLSessionDownloadTask 下载文件，会默认下载到沙盒中的 tem 文件夹中，不会出现内存暴涨的情况，但在下载完成后会将 tem 中的临时文件 删除，需要在初始化任务方法时，在 completionHandler 回调中增加保存文件的代码。  
 
 4.配置信息
 
@@ -172,7 +178,7 @@ NSURLSession 的构造方法(sessionWithConfiguration:delegate:delegateQueue)中
 `装载因子`，也叫负载因子(load factor)，它表示散列表的装满程度。当当前表的实际装载因 子达到默认的负载因子值(负载极限)时，就会触发哈希表的扩容。  
 
 
-一般情况下，默认的负载因子值不能太大，因为其虽然减少了空间开销，但是增加了查询的 时间成本;也不能太小，因为这样还会增加 `rehash` 的次数，性能较低。
+一般情况下，默认的负载因子值不能太大，因为其虽然减少了空间开销，但是增加了查询的时间成本;也不能太小，因为这样还会增加 `rehash` 的次数，性能较低。
 
 
 `Hashcode` 
@@ -310,7 +316,13 @@ locstamped_category_t list[0];
 };
 ```
 所以更具体来说 `attachCategories` 做的就是将 `locstamped_category_list_t.list` 列表中每个 `Locstamped_category_t.cat` 中那方法、协议和属性分别添加到类的 `class_rw_t` 对应列表中。 `header_info` 中的信息决定了是否是元类，从而选择应该是添加实例方法还是类方法、实例 属性还是类属性等。
-其实编译器会根据情况在 `objc_msgSend`,`objc_msgSend_stret`,`objc_msgSendSuper`,或 `objc_msgSendSuper_stret` 四个方法中选择一个来调用。如果消息是传递给超类，那么会调用 名字带有 `super` 的函数，如果是在 `i386` 平台处理返回类型为浮点数的消息事，需要用到 `objc_msgSend_fpret` 函数处理 `fpret` 就是`fp"+"ret` 分别代表`floating-point`和`return`。
+其实编译器会根据情况在 `objc_msgSend`,`objc_msgSend_stret`,`objc_msgSendSuper`,或 `objc_msgSendSuper_stret` 四个方法中选择一个来调用。如果消息是传递给超类，那么会调用 名字带有 `super` 的函数，如果是在 `i386` 平台处理返回类型为浮点数的消息事，需要用到 `objc_msgSend_fpret` 函数处理 `fpret` 就是`fp"+"ret` 分别代表`floating-point`和`return`。  
+
+
+
+#### Category为何不能直接添加属性
+
+首先Category系统没有生成setter方法，其次Category并没有实例成员变量列表，成员变量本身是一个类该有的东西，分类本身不是一个类，所以他不能添加成员变量。另外类的变量布局在编译后就已经完成。
 
 
 ### NSObject对象苹果增加了一些内容 为何不会覆盖咱们自定义的属性?
@@ -1593,7 +1605,36 @@ segregated_size_to_fit(nanozone_t *nanozone, size_t size, size_t *pKey)
 所以，最终iOS分配的内存大小会是16的倍数大小。  
 
 
+#### 两种方式调用class，得到结果是啥？调用区别是什么？
+
+```
+@interface TMMeditor : NSObject
 
 
+@end
+
+@implementation TMMeditor
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        NSLog(@"%@",NSStringFromClass([self class]));
+        NSLog(@"%@",NSStringFromClass([super class]));
+    }
+    return self;
+}
+```
+* 第一行打印结果是TMMeditor。[self class]表示TMMeditor调用class方法得到类名TMMeditor。    
+* 第二行打印结果也是TMMeditor。[super class]表示当前类的父类NSObject去调用class方法，因为接收者是TMMeditor，所以得到TMMeditor类名。  
+
+
+#### 如何监听非UI主线程添加视图  
+当前视图如果加入了新的视图，如果当前类重写了didAddSubView:方法，则会自动调用该方法，咱们可以在该方法中打印当前线程，从而判断是否是在非主线程进行UI操作。  
+
+
+### 假如给你一张50M的本地图片-你如何保证图片能够流畅的在手机上显示出来-并且内存不暴涨  
+
+首先，这里可以对图片先进行切片，再采用多线程对各个切片进行解码，转交给GPU渲染以后，回到主线程显示，其次还可以将最终得到的完整图片进行一次无损压缩。
 
 
