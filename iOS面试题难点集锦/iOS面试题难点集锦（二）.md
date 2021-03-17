@@ -320,9 +320,9 @@ locstamped_category_t list[0];
 
 
 
-#### Category为何不能直接添加属性
+#### Category为何不能直接添加属性  
 
-首先Category系统没有生成setter方法，而且Category并没有成员变量列表，成员变量列表本身也是一个类才该有的东西，分类本身不是一个类，所以他不能添加成员变量。另外类的变量布局在编译后就已经完成。
+首先Category系统没有生成setter方法，而且Category并没有成员变量列表，成员变量列表本身也是一个类才该有的东西，分类本身不是一个类，所以他不能添加成员变量。另外类的变量布局在编译后就已经完成。在objc_class结构体中，ivars是objc_ivar_list（成员变量列表）指针；methodLists是指向objc_method_list指针的指针。在Runtime中，objc_class结构体大小是固定的，不可能往这个结构体中添加数据，只能修改。所以ivars指向的是一个固定区域，只能修改成员变量值，不能增加成员变量个数。methodList是一个二维数组，所以可以修改methodLists里面指针的值来增加成员方法，虽没办法扩展methodLists指向的内存区域，却可以改变这个内存区域的值（存储的是指针）。因此，可以动态添加方法，不能添加成员变量。  
 
 
 ### NSObject对象苹果增加了一些内容 为何不会覆盖咱们自定义的属性?
@@ -1625,8 +1625,8 @@ segregated_size_to_fit(nanozone_t *nanozone, size_t size, size_t *pKey)
     return self;
 }
 ```
-* 第一行打印结果是TMMeditor。[self class]表示TMMeditor调用class方法得到类名TMMeditor。    
-* 第二行打印结果也是TMMeditor。[super class]表示当前类的父类NSObject去调用class方法，因为接收者是TMMeditor，所以得到TMMeditor类名。  
+* 第一行打印结果是TMMeditor。[self class] isa指针会先从当前类调用class方法，消息接收者是self,所以得到类名TMMeditor。    
+* 第二行打印结果也是TMMeditor。[super class] isa指针会去先去super父类中调用class方法，但是消息接收者都是self,所以得到TMMeditor类名。  
 
 
 #### 如何监听非UI主线程添加视图  
