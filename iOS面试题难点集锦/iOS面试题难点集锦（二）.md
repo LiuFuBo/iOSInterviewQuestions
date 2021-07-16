@@ -49,7 +49,7 @@
 43. [NSTimer计时不准的原因？](#NSTimer计时不准的原因)  
 44. [线程池的作用有哪些？](#线程池的作用有哪些)  
 45. [什么是函数式编程？](#什么是函数式编程)
-
+46. [WKWebView和JS交互的方式有哪些？](#WKWebView和JS交互的方式有哪些)  
 
 
 
@@ -1668,10 +1668,62 @@ segregated_size_to_fit(nanozone_t *nanozone, size_t size, size_t *pKey)
 
 
 #### 什么是函数式编程  
-* 用函数的思想解决问题,而不是对象的思想。对于函数来说就只有（入参 和 返回值）那么把一个复杂的问题，拆解为多个小问题，并用函数计算的方式，去解决。
+* 用函数的思想解决问题,而不是对象的思想。对于函数来说就只有（入参 和 返回值）那么把一个复杂的问题，拆解为多个小问题，并用函数计算的方式，去解决。  
 
 
+#### WKWebView和JS交互的方式有哪些  
+系统原生方式调用：  
+```
+// 1. webview调用JS函数, JS代码可根据需要拼接好。
+NSString *JSFunc = xxx;
+[self.webView evaluateJavaScript:JSFunc completionHandler:^(id _Nullable result, NSError * _Nullable error) {
+   NSLog(@"evaluateJavaScript:\n result = %@ error = %@",result, error);
+}];
 
+// 2. 网页JS调原生: 
+//   1> 需要先设置Webview. config 的WKUserContentController
+//   2> 注册方法名 [userCC addScriptMessageHandler:self name:];
+//   3> 遵守协议<WKScriptMessageHandler>，实现其方法.
+//   4> 在控制器销毁时，需要移除方法名注册
+WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
+WKUserContentController *userCC = [WKUserContentController new];
+config.userContentController = userCC;
+//JS调用OC 添加处理脚本
+[userCC addScriptMessageHandler:self name:JSMessageName_Register];
+WKWebView *webView = [[WKWebView alloc] initWithFrame:webFrame configuration:config];
+
+#pragma mark - WKScriptMessageHandler
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    if ([message.name isEqualToString:JSMessageName_Register]) {
+        RegisterViewController *controller = [RegisterViewController new];
+        [self.navigationController pushViewController:controller animated:YES];
+    }
+}
+- (void)dealloc
+{
+    WKUserContentController *userCC = self.webView.configuration.userContentController;
+    [userCC removeScriptMessageHandlerForName:JSMessageName_Register]; // 不移除，怕是会造成webview无法释放
+}
+
+```
+
+采用桥接方式调用：  
+```
+// 1.JS调用原生：假设方法名是getUserInfo
+[_bridge registerHandler:@"getUserInfo" handler:^(id data, WVJBResponseCallback responseCallback) {
+        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+        dict[@"custName"] = [UserModel shareUserModel].custName;
+        dict[@"idCard"] = [UserModel shareUserModel].certifino;
+        responseCallback([JSONKit jsonStringWithObject:dict]);
+    }];
+
+// 2. webview调用JS： 假设JS的方法名是redirect
+[_bridge callHandler:@"redirect" data:@"test" responseCallback:^(id responseData) {
+        NSLog(@"%@", responseData);
+ }];
+
+```
+通过方法名与对应的操作放在一起的方式更有利于维护；除此之外，这个提供了一份JS模板文件，安卓端也可以是同样的原理实现。  
 
 
 
