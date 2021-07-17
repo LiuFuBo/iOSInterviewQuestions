@@ -601,10 +601,10 @@ getMethodNoSuper_nolock(Class cls, SEL sel)
 }
 ```
 总结流程如下：  
-* 先通过runtime上锁。  
-* 如果没有没有初始化类，则直接断言崩溃。  
-* for循环取出方法method结构体，判断是否是sel对应的method，如果是则则直接范围。  
-* 如果没有找到则直接返回nil。  
+1.先通过runtime上锁。  
+2.如果没有没有初始化类，则直接断言崩溃。  
+3.for循环取出方法method结构体，判断是否是sel对应的method。如果是,则直接范围。  
+4.如果没有找到则直接返回nil。  
 
 接下来我们看一下'search_method_list(*mlists, sel);'函数内部是如何通过sel找到method：  
 ```
@@ -626,12 +626,12 @@ static method_t *search_method_list(const method_list_t *mlist, SEL sel)
   
   
 总结流程如下：  
-* 先通过isFixedUp()函数判断是否方法列表是已经编译阶段就排序好的。
-* 获取方法列表的size大小
-* 通过__builtin_expect指令，优化执行逻辑，CPU是流水线方式实现的，即取指->执行->输出结果，第一条指令在执行的过程中，第二条指令可能已经完成了取指。但是如果第一条执行的执行结果使得程序发生了跳转，取到的第二条指令相当于做了无用功。因为此时要执行跳转位置的指令。使用__builtin_expect指令，如LIKELY宏，是告诉CPU X的值更大概率是1。在执行下一次取指操作的时候，执行结果是1成立的情况下的指令。这样减少了CPU做无用功的次数，提高执行效率。这里是如果方法列表已经排序好的，并且方法列表size大小已经获取到，就会去已存在的方法列表中通过'findMethodInSortedMethodList(sel, mlist);'函数二分查找更加快速查找到对应method结构体。  
-* 如果方法列表没排序好，并且方法列表size大小无法获取到，则直接遍历方法列表。判断sel是否等于name,找到对应的method结构体。  
+1.先通过isFixedUp()函数判断是否方法列表是已经编译阶段就排序好的。
+2.获取方法列表的size大小
+3.通过__builtin_expect指令，优化执行逻辑，CPU是流水线方式实现的，即取指->执行->输出结果，第一条指令在执行的过程中，第二条指令可能已经完成了取指。但是如果第一条执行的执行结果使得程序发生了跳转，取到的第二条指令相当于做了无用功。因为此时要执行跳转位置的指令。使用__builtin_expect指令，如LIKELY宏，是告诉CPU X的值更大概率是1。在执行下一次取指操作的时候，执行结果是1成立的情况下的指令。这样减少了CPU做无用功的次数，提高执行效率。这里是如果方法列表已经排序好的，并且方法列表size大小已经获取到，就会去已存在的方法列表中通过'findMethodInSortedMethodList(sel, mlist);'函数二分查找更加快速查找到对应method结构体。  
+4.如果方法列表没排序好，并且方法列表size大小无法获取到，则直接遍历方法列表。判断sel是否等于name,找到对应的method结构体。  
 
-通过上面我们已经知道已经排好序的方法列表会通过二分查找的形式进行寻找method结构体，我们进入'findMethodInSortedMethodList(sel, mlist);'函数内部看一下实现过程。  
+通过上面我们知道已经排好序的方法列表会通过二分查找的形式进行method结构体寻找，我们进入'findMethodInSortedMethodList(sel, mlist);'函数内部看一下实现过程。  
 
 ```
 static method_t *findMethodInSortedMethodList(SEL key, const method_list_t *list)
@@ -670,14 +670,14 @@ static method_t *findMethodInSortedMethodList(SEL key, const method_list_t *list
 ```  
   
 总结流程如下：  
-* 首先断言判断方法列表是否为空，如果为空，则直接崩溃。
-* 通过递减的形式进行for循环，count>>=1，相当于每循环一次除2.
-* probe 先取一半的位置的mehtod的name判断是否为需要寻找的method结构体。
-* 如果是需要找的结构体，还得考虑分类添加的跟本类同样方法时的情况。
-* 如果分类也添加了跟本类同样的方法，那么分类的方法一定是排在本类方法前面的，而且这里是已经排序好的方法，那么相同的方法肯定会被排序到相邻位置。所以通过while循环判断数组上一个位置method的name是否也是跟keyValue相同，如果相同则是分类添加的方法，而且开发者可能同时添加了多个跟本类一样的方法在不同的分类，这里只需要遍历找到最前面那个匹配的method结构体，就是我们需要寻找的method，再直接返回即可。
-* 当keyValue位置大于一半的时候，则直接把base = probe +1 ，通过后一半数据进行比较，最终找出匹配的method结构体。  
+1.首先断言判断方法列表是否为空，如果为空，则直接崩溃。
+2.通过递减的形式进行for循环，count>>=1，相当于每循环一次除2。
+3.probe 先取一半的位置的mehtod的name判断是否为需要寻找的method结构体。
+4.如果是需要找的结构体，还得考虑分类添加的跟本类同样方法时的情况。
+5.如果分类也添加了跟本类同样的方法，那么分类的方法一定是排在本类方法前面的，而且这里是已经排序好的方法，那么相同的方法肯定会被排序到相邻位置。所以通过while循环判断数组上一个位置method的name是否也是跟keyValue相同，如果相同则是分类添加的方法，而且开发者可能同时添加了多个跟本类一样的方法在不同的分类，这里只需要遍历找到最前面那个匹配的method结构体，就是我们需要寻找的method，再直接返回即可。
+6.当keyValue位置大于一半的时候，则直接把base = probe +1 ，通过后一半数据进行比较，最终找出匹配的method结构体。  
 
-通过上面二分查找method结构体代码，其实我们还可以了解到method结构体的排序实际上是通过将sel字符串强制转换为uintptr_t类型进行比较的，通过进入uintptr_t定义的地方我们可以了解到，他是一个unsigned long无符号long型数据类型。最终就是数字进行比较。
+通过上面二分查找method结构体代码，其实我们还可以了解到method结构体的排序实际上是通过将SEL字符串强制转换为uintptr_t类型进行比较的，通过进入uintptr_t定义的地方我们可以了解到，他是一个unsigned long无符号long型数据类型。最终就是数字进行比较。
 
 
   
