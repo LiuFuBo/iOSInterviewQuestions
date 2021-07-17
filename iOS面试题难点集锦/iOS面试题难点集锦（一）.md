@@ -677,9 +677,72 @@ static method_t *findMethodInSortedMethodList(SEL key, const method_list_t *list
 5.如果分类也添加了跟本类同样的方法，那么分类的方法一定是排在本类方法前面的，而且这里是已经排序好的方法，那么相同的方法肯定会被排序到相邻位置。所以通过while循环判断数组上一个位置method的name是否也是跟keyValue相同，如果相同则是分类添加的方法，而且开发者可能同时添加了多个跟本类一样的方法在不同的分类，这里只需要遍历找到最前面那个匹配的method结构体，就是我们需要寻找的method，再直接返回即可。
 6.当keyValue位置大于一半的时候，则直接把base = probe +1 ，通过后一半数据进行比较，最终找出匹配的method结构体。  
 
-通过上面二分查找method结构体代码，其实我们还可以了解到method结构体的排序实际上是通过将SEL字符串强制转换为uintptr_t类型进行比较的，通过进入uintptr_t定义的地方我们可以了解到，他是一个unsigned long无符号long型数据类型。最终就是数字进行比较。
+通过上面代码，我们了解到方法列表在编译器有可能优化以后，会对方法列表进行排序，那么方法列表是通过什么方式来进行排序的呢？咱们接着来探索。  
 
 
+```
+static void 
+prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount, 
+                   bool baseMethods, bool methodsFromBundle)
+{
+
+    for (int i = 0; i < addedCount; i++) {
+        method_list_t *mlist = addedLists[i];
+        assert(mlist);
+
+        // 如果没有排序
+        if (!mlist->isFixedUp()) {
+            fixupMethodList(mlist, methodsFromBundle, true/*sort*/);
+        }
+    }
+}
+```
+接着咱们进入'fixupMethodList(mlist, methodsFromBundle, true/*sort*/);'函数内部查看实现过程：  
+
+```
+static void 
+fixupMethodList(method_list_t *mlist, bool bundleCopy, bool sort)
+{ 
+    //为方便查看，仅保留关键代码  
+    for (auto& meth : *mlist) {
+        const char *name = sel_cname(meth.name);
+        
+        SEL sel = sel_registerNameNoLock(name, bundleCopy);
+        meth.name = sel;
+        
+        if (ignoreSelector(sel)) {
+            meth.imp = (IMP)&_objc_ignored_method;
+        }
+    }
+     
+     //根据地址排序
+    if (sort) {
+        method_t::SortBySELAddress sorter;
+        std::stable_sort(mlist->begin(), mlist->end(), sorter);
+    }
+    
+    //标记方法列表已经被统一排序
+    mlist->setFixedUp();
+}
+```
+经过这里，我们大概已经知道是通过方法名地址来排序的，我们进去看一下排序的实现：  
+```
+struct method_t {
+    SEL name;
+    const char *types;
+    IMP imp;
+
+    struct SortBySELAddress :
+        public std::binary_function<const method_t&,
+                                    const method_t&, bool>
+    {
+        bool operator() (const method_t& lhs,
+                         const method_t& rhs)
+        { return lhs.name < rhs.name; }
+    };
+};
+```
+通过这里我们看到，其实地址比较的方法是放在method结构体内部实现的。可以清晰的看到，他们是通过地址比较来进行的排序。  
   
 
 
